@@ -1,5 +1,23 @@
 extends layout
 
 block content
-  h1= title
-  p Welcome to #{title}
+  div.container
+    h1 RDFa - Parser
+    p Please enter
+    ul
+      li a URL ("http://...")
+      li a file path ("file://...")
+      li or plain html text ("&lt;html&gt; ... &lt;\html&gt;")
+
+  div.container
+    //input.span3(id="url", type="text", name="URL", placeholder="Enter URL to parse")
+    div.form-group
+      textarea#inputField.form-control.animated(name="input", rows="5")
+    div.form-group
+      a.submitButton.btn.btn-info.pull-right(type="submit") Submit (Ctrl + Return)
+  p &nbsp;
+
+  div.container
+    pre#outputField enter something ^^^^ - above - ^^^^ to get some OUTPUT..
+
+  div.footer
