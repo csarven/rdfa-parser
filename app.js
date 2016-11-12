@@ -6,10 +6,6 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 require('prototypes');
 
-// var $ = require('jquery');
-// window.$ = $;
-// require('bootstrap');
-
 var routes = require('./routes/index');
 
 var app = express();
@@ -23,7 +19,7 @@ app.use('/jquery', express.static(__dirname + '/node_modules/jquery/dist/'));
 app.use('/bootstrap', express.static(__dirname + '/node_modules/bootstrap/dist/'));
 
 // uncomment after placing your favicon in /public
-//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
+app.use(favicon(path.join(__dirname, '/public/icons/', 'favicon.ico')));
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -62,6 +58,5 @@ app.use(function(err, req, res) {
     error: {}
   });
 });
-
 
 module.exports = app;
