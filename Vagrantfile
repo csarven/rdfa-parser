@@ -43,7 +43,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # argument is a set of non-required options.
   # config.vm.synced_folder "../data", "/vagrant_data"
   
-  config.vm.provision :shell, :path => "setup.sh"
+  config.vm.provision :shell, :path => 'setup.sh', :privileged => true
+  config.vm.provision :shell, :privileged => true, :path => 'run.sh', run: 'always'
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
