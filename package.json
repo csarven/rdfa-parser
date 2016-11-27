@@ -17,7 +17,10 @@
     "jquery": "^3.1.1",
     "morgan": "~1.7.0",
     "prototypes": "^2.0.0",
+    "rdf": "^3.0.1",
     "request": "^2.78.0",
-    "serve-favicon": "~2.3.0"
+    "serve-favicon": "~2.3.0",
+    "uri-js": "^2.1.1",
+    "xml-name-validator": "^2.0.1"
   }
 }

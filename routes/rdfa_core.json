@@ -1,4 +1,5 @@
 {
+  "context": {
     "ccsvw": "http://www.w3.org/ns/csvw#",
     "dcat": "http://www.w3.org/ns/dcat#",
     "qb": "http://purl.org/linked-data/cube#",
@@ -21,12 +22,10 @@
     "xhv": "http://www.w3.org/1999/xhtml/vocab#",
     "xml": "http://www.w3.org/XML/1998/namespace",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
-
     "dqv": "http://www.w3.org/ns/dqv#",
     "earl": "http://www.w3.org/ns/earl#",
     "ssn": "http://www.w3.org/ns/ssn/",
     "oa": "http://www.w3.org/ns/oa#",
-
     "cc": "http://creativecommons.org/ns#",
     "ctag": "http://commontag.org/ns#",
     "dc": "http://purl.org/dc/terms/",
@@ -41,8 +40,10 @@
     "v": "http://rdf.data-vocabulary.org/#",
     "vcard": "http://www.w3.org/2006/vcard/ns#",
     "schema": "http://schema.org/",
-
+  },
+  "terms": {
     "describedby": "http://www.w3.org/2007/05/powder-s#describedby",
     "license": "http://www.w3.org/1999/xhtml/vocab#license",
     "role": "http://www.w3.org/1999/xhtml/vocab#role"
+  }
 }
