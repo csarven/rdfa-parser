@@ -1,7 +1,7 @@
 'use strict';
 const rdf = require('rdf');
 
-class incompleteTriples extends rdf.Triples {
+class incompleteTriples extends rdf.Triple {
     constructor(s, p, o, direction) {
         super(s, p, o);
         this._direction = direction;
@@ -10,8 +10,6 @@ class incompleteTriples extends rdf.Triples {
     get direction() {
         return this._direction;
     }
-
-
 }
 
 class Context {
@@ -45,6 +43,8 @@ class Context {
         this._defaultVocabulary = defaultVocabulary;
     }
 
+    get base() { return this._base; }
+    // set base(base) { this._base = base; }
     get defaultVocabulary() { return this._defaultVocabulary; }
     get parentSubject() { return this._parentSubject; }
     get incompleteTriples() { return this._incompleteTriples; }
