@@ -85,103 +85,96 @@ let add_local_iriMaps = function (l_iriMaps, prefixString) {
 
 };
 
-function getIRI(string) {
-    let uri = uriJs.parse(string);
-    return uriJs.serialize(uri, {iri: true, absolutePath: true});
-}
 
+function processElement($, ts, context, graph) {
 
-function getSafeCURIE(prop) {
-
-    let prefix;
-    if (!prop.contains(':') || prop.split(':')[0] == "") {
-        prefix = 'xhr'; // standard for rdfa
-    } else if (prop.split(':')[0] == '_') {
-        return undefined;
-    } else {
-        prefix = prop.split(':')[0];
+    function getIRI(string) {
+        let uri = uriJs.parse(string);
+        return uriJs.serialize(uri, {iri: true, absolutePath: true});
     }
 
-    // verify xml name
-    if (!xnv.name(prefix).success) {
-        return undefined;
-    }
 
-    let reference = prop.substr(prefix.length + 1);
+    function getSafeCURIE(prop) {
 
-    if (local_iriMappings.hasOwnProperty(prefix)) {
-        return getIRI(local_iriMappings[prefix] + reference);
-    } else {
-        return undefined;
-    }
+        let prefix;
+        if (!prop.contains(':') || prop.split(':')[0] == "") {
+            prefix = 'xhr'; // standard for rdfa
+        } else if (prop.split(':')[0] == '_') {
+            return undefined;
+        } else {
+            prefix = prop.split(':')[0];
+        }
 
-    // let path = reference.split('?')[0];
-    // let iqery = reference.split('?')[1].split('#')[0];
-    // let ifragment = reference.split('#')[1];
-    //
-    // if (!path.startsWith('/') || path.startsWith('//')) {
-    //     return undefined;
-    // }
+        // verify xml name
+        if (!xnv.name(prefix).success) {
+            return undefined;
+        }
 
+        let reference = prop.substr(prefix.length + 1);
 
-}
-
-function getCURIE(prop) {
-    let curie = getSafeCURIE(prop);
-    if (curie == undefined) {
-        return getIRI(prop);
-    } else {
-        return curie;
-    }
-
-}
-
-function getSafeCURIEorCURIEorIRI(prop) {
-    let braces = /\[(.*?)\]/g;
-
-    if (braces.test(prop)) {
-        return getSafeCURIE(prop);
-    } else {
-        return getCURIE(prop);
-    }
-}
-
-function getTERM(string) {
-    if (local_defaultVocabulary != null) {
-        return local_defaultVocabulary + string;
-    } else if (local_termMappings.hasOwnProperty(string)) {
-        return local_termMappings[string];
-    } else if (local_termMappings.hasOwnPropertyCI(string)) {
-        return local_termMappings.getCI(string);
-    }
-    return undefined;
-}
-
-function getTERMorCURIEorAbsIRIs(string) {
-    let multiString = string.replace(/:\s+/g, ':');
-    let Strings = multiString.split(/\s+/);
-
-    let result = [];
-
-    for (let i = 0; i < Strings.length; i++) {
-        let term = getTERM(Strings[i]);
-        if (term != undefined) {
-            result.push(getTERM(Strings[i]));
-
-        } else if (getSafeCURIE(Strings[i]) != undefined) {
-            result.push(getSafeCURIE(Strings[i]));
-
-        } else if (getIRI(Strings[i]) != undefined) { // TODO: gib des a undefined zruck?
-            result.push(getIRI(Strings[i]));
-
+        if (local_iriMappings.hasOwnProperty(prefix)) {
+            return getIRI(local_iriMappings[prefix] + reference);
         } else {
             return undefined;
         }
+
     }
-}
 
-function processElement(ts, context, graph) {
+    function getCURIE(prop) {
+        let curie = getSafeCURIE(prop);
+        if (curie == undefined) {
+            return getIRI(prop);
+        } else {
+            return curie;
+        }
 
+    }
+
+    function getSafeCURIEorCURIEorIRI(prop) {
+        let braces = /\[(.*?)\]/g;
+
+        if (braces.test(prop)) {
+            return getSafeCURIE(prop);
+        } else {
+            return getCURIE(prop);
+        }
+    }
+
+    function getTERM(string) {
+        if (local_defaultVocabulary != null) {
+            return local_defaultVocabulary + string;
+        } else if (local_termMappings.hasOwnProperty(string)) {
+            return local_termMappings[string];
+        } else if (local_termMappings.hasOwnPropertyCI(string)) {
+            return local_termMappings.getCI(string);
+        }
+        return undefined;
+    }
+
+    function getTERMorCURIEorAbsIRIs(string) {
+        let multiString = string.replace(/:\s+/g, ':');
+        let Strings = multiString.split(/\s+/);
+
+        let result = [];
+
+        for (let i = 0; i < Strings.length; i++) {
+            let term = getTERM(Strings[i]);
+            if (term != undefined) {
+                result.push(getTERM(Strings[i]));
+
+            } else if (getSafeCURIE(Strings[i]) != undefined) {
+                result.push(getSafeCURIE(Strings[i]));
+
+            } else if (getIRI(Strings[i]) != undefined) { // TODO: gib des a undefined zruck?
+                result.push(getIRI(Strings[i]));
+
+            } else {
+                return undefined;
+            }
+        }
+    }
+
+    // reference: https://www.w3.org/TR/rdfa-core/#s_sequence
     //seq 1
     let local_skip = false;
     let local_newSubject = null;
@@ -202,7 +195,9 @@ function processElement(ts, context, graph) {
     }
 
     // seq 3
-    add_local_iriMaps(local_iriMappings, ts.prop('pefix'));
+    if (ts.is('[prefix]')) {
+        add_local_iriMaps(local_iriMappings, ts.prop('pefix'));
+    }
 
     // seq 4
     // TODO: current language
@@ -214,14 +209,14 @@ function processElement(ts, context, graph) {
 
             if (ts.is('[about]')) {
                 local_newSubject = getSafeCURIEorCURIEorIRI(ts.prop('about'))
-            } else if (ts[0] == document.firstChild) {
+            } else if (ts.is(':root')) {
                 local_newSubject = getSafeCURIEorCURIEorIRI(''); // TODO: direkt?
             } else if (context.parentObject != null) {
                 local_newSubject = context.parentObject;
             }
 
             if (ts.is('[typeof]')) {
-                if (local_newSubject != null || ts[0] == document.firstChild) {
+                if (local_newSubject != null || ts.is(':root')) {
                     local_typedRessource = local_newSubject;
                 } else {
                     if (ts.is('[resource]')) {
@@ -249,7 +244,7 @@ function processElement(ts, context, graph) {
             } else if (ts.is('[src]')) {
                 local_newSubject = getIRI(ts.prop('src'));
             } else {
-                if (ts[0] == document.firstChild) {
+                if (ts.is(':root')) {
                     local_newSubject = getSafeCURIEorCURIEorIRI('');
                 } else if (ts.is('[typeof]')) {
                     local_newSubject = new rdf.BlankNode()
@@ -274,9 +269,12 @@ function processElement(ts, context, graph) {
     // seq 7
     if (local_typedRessource != null) {
         let values = getTERMorCURIEorAbsIRIs(ts.prop('typeof'));
-        for (let i = 0; i < values.length; i++) {
-            graph.add(local_typedRessource, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', values[i])
+        if (values) {
+            for (let i = 0; i < values.length; i++) {
+                graph.add(local_typedRessource, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', values[i])
+            }
         }
+
     }
 
     // seq 8
@@ -357,7 +355,7 @@ function processElement(ts, context, graph) {
 
         }
         //// DO TODO..
-        processElement(ts, ctx, graph);
+        processElement($, ts, ctx, graph);
     });
 
     // callback(graph);
@@ -381,7 +379,7 @@ const parseRDFa = function (source, callback) {
             let ts = $(this);
             let ctx = getInitialContext($);
 
-            processElement(ts, ctx, graph);
+            processElement($, ts, ctx, graph);
 
         });
 
