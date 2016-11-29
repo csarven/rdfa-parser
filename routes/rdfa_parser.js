@@ -36,12 +36,22 @@ let baseURL = "";
 require('./classes.js');
 const rdfaInit = require("./rdfa_core.json");
 
-Object.prototype.hasOwnPropertyCI = function (prop) {
-    return Object.keys(this)
-            .filter(function (v) {
-                return v.toLowerCase() === prop.toLowerCase();
-            }).length > 0;
-};
+// Object.prototype.hasOwnPropertyCI = function (prop) {
+//     return Object.keys(this)
+//             .filter(function (v) {
+//                 return v.toLowerCase() === prop.toLowerCase();
+//             }).length > 0;
+// };
+
+Object.defineProperty(Object.prototype, "hasOwnPropertyCI", {
+    value: function (prop) {
+        return Object.keys(this)
+                .filter(function (v) {
+                    return v.toLowerCase() === prop.toLowerCase();
+                }).length > 0;
+    }
+});
+
 
 Object.defineProperty(Object.prototype, "getCI", {
     value: function (prop) {
@@ -335,8 +345,8 @@ function processElement(ts, context, graph) {
                 (local_currentObjectRessource != null)
                     ? local_currentObjectRessource
                     : (local_newSubject != null)
-                        ? local_newSubject
-                        : context.parentSubject,
+                    ? local_newSubject
+                    : context.parentSubject,
                 local_incompleteTriples,
                 local_listMappings,
                 local_language, //TODO: current language -> https://www.w3.org/TR/rdfa-core/#T-current-language
