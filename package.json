@@ -18,6 +18,7 @@
     "prototypes": "^2.0.0",
     "pug": "^2.0.0-beta6",
     "rdf": "^3.0.1",
+    "rdfstore": "^0.9.17",
     "request": "^2.78.0",
     "serve-favicon": "~2.3.0",
     "uri-js": "^2.1.1",

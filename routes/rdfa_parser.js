@@ -36,37 +36,97 @@ let baseURL = "";
 require('./classes.js');
 const rdfaInit = require("./rdfa_core.json");
 
-// Object.prototype.hasOwnPropertyCI = function (prop) {
-//     return Object.keys(this)
-//             .filter(function (v) {
-//                 return v.toLowerCase() === prop.toLowerCase();
-//             }).length > 0;
-// };
 
-Object.defineProperty(Object.prototype, "hasOwnPropertyCI", {
-    value: function (prop) {
-        return Object.keys(this)
-                .filter(function (v) {
-                    return v.toLowerCase() === prop.toLowerCase();
-                }).length > 0;
-    }
-});
+/**
+ * parses RDFa from source (may be URL, file:// or a plain html string) to triples
+ * @param source
+ * @param callback
+ */
+const parseRDFa = function (source, callback) {
 
+    getHTML(source, function (html) {
 
-Object.defineProperty(Object.prototype, "getCI", {
-    value: function (prop) {
-        let key, self = this;
-        for (key in self) {
-            if (self.hasOwnProperty(key)) {
-                if (key.toLowerCase() == prop.toLowerCase()) {
-                    return self[key];
-                }
+        let $ = cheerio.load(html);
+
+        let graph = new rdf.Graph();
+
+        $(':root').each(function () {
+            let ts = $(this);
+            let ctx = getInitialContext($);
+
+            processElement($, ts, ctx, graph);
+
+        });
+
+        callback(graph);
+    });
+
+};
+
+/**
+ * returns html content from file, web or plain html text
+ * @param source can be URL starting with 'http' or file starting with 'file://' or plain html text
+ * @param callback
+ * @returns {string} html content
+ */
+const getHTML = function (source, callback) {
+
+    source = source.trim();
+
+    if (source.startsWith('http')) {
+        baseURL = source;
+        request(source, function (error, response, html) {
+            if (!error && response.statusCode == 200) {
+                callback(html);
             }
-        }
-    },
-    //this keeps jquery happy
-    enumerable: false
-});
+        });
+
+    } else if (source.startsWith('file://')) {
+        baseURL = source;
+        fs.readFile(source.substr(7), 'utf-8', function (err, data) {
+            if (err) throw err;
+            callback(data);
+        })
+
+    } else if (source.startsWith('<') || source.startsWith('<')) {
+        throw new Error('plain html not possible atm..');
+        // callback(source);
+
+    } else {
+        throw new Error('could not detect input format');
+
+    }
+
+
+};
+
+function getInitialContext($) {
+
+    let base = $('[xml\\:base]').prop('xml:base');
+    if (base == undefined)
+        base = $('base').prop('href');
+    if (base == undefined)
+        base = getIRI(baseURL);
+
+    let lang = $('[xml\\:lang]').prop('xml:lang');
+    if (lang == undefined)
+        lang = $('lang').prop('href');
+    if (lang == undefined)
+        lang = null;
+
+    return new Context(
+        base,
+        base,
+        null,
+        [],
+        [],
+        lang,
+        rdfaInit.context,
+        rdfaInit.terms,
+        null
+    );
+}
+
 
 let add_local_iriMaps = function (l_iriMaps, prefixString) {
     let multiPrefixString = prefixString.replace(/:\s+/g, ':');
@@ -85,19 +145,21 @@ let add_local_iriMaps = function (l_iriMaps, prefixString) {
 
 };
 
+function getIRI(string) {
+    let uri = uriJs.parse(string);
+    return uriJs.serialize(uri, {iri: true, absolutePath: true});
+}
 
 function processElement($, ts, context, graph) {
-
-    function getIRI(string) {
-        let uri = uriJs.parse(string);
-        return uriJs.serialize(uri, {iri: true, absolutePath: true});
-    }
 
 
     function getSafeCURIE(prop) {
 
+        if (prop == undefined)
+            return undefined;
+
         let prefix;
-        if (!prop.contains(':') || prop.split(':')[0] == "") {
+        if (!prop.includes(':') || prop.split(':')[0] == "") {
             prefix = 'xhr'; // standard for rdfa
         } else if (prop.split(':')[0] == '_') {
             return undefined;
@@ -127,7 +189,6 @@ function processElement($, ts, context, graph) {
         } else {
             return curie;
         }
-
     }
 
     function getSafeCURIEorCURIEorIRI(prop) {
@@ -183,7 +244,7 @@ function processElement($, ts, context, graph) {
     let local_iriMappings = context.iriMappings;
     let local_incompleteTriples = null;
     let local_listMappings = context.listMappings;
-    let local_language = context.language;
+    // let local_language = context.language;
     let local_termMappings = context.termMappings;
     let local_defaultVocabulary = context.defaultVocabulary;
 
@@ -196,14 +257,18 @@ function processElement($, ts, context, graph) {
 
     // seq 3
     if (ts.is('[prefix]')) {
-        add_local_iriMaps(local_iriMappings, ts.prop('pefix'));
+        add_local_iriMaps(local_iriMappings, ts.prop('prefix'));
     }
 
     // seq 4
-    // TODO: current language
+    let local_language = $('[xml\\:lang]').prop('xml:lang');
+    if (local_language == undefined)
+        local_language = $('lang').prop('href');
+    if (local_language == undefined)
+        local_language = context.language;
 
     // seq 5
-    if (ts.not('[rel]') || ts.not('[rev]')) {
+    if (ts.not('[rel]') && ts.not('[rev]')) {
         // seq 5.1
         if (ts.is('[property]') && ts.not('[content]') && ts.not('[datatype]')) {
 
@@ -260,10 +325,30 @@ function processElement($, ts, context, graph) {
                 local_typedRessource = local_newSubject;
             }
         }
+
         // seq 6
     } else {
-        // TODO: seq 6 core
-        console.log('Warning: rel / rev not yet implemented..');
+        if (ts.is('[about]')) {
+            local_newSubject = getSafeCURIEorCURIEorIRI(ts.prop('about'));
+            if (ts.is('[typeof]')) {
+                local_typedRessource = local_newSubject;
+            }
+        } else if (ts.is(':root')) {
+            local_newSubject = getSafeCURIEorCURIEorIRI('');
+        } else if (context.parentObject != null) {
+            local_newSubject = context.parentObject;
+        }
+
+        if (ts.is('[resource]')) {
+            local_currentObjectRessource = getSafeCURIEorCURIEorIRI(ts.prop('resource'));
+        } else if (ts.is('[href]')) {
+            local_currentObjectRessource = getIRI(ts.prop('href'));
+        } else if (ts.is('[src]')) {
+            local_currentObjectRessource = getIRI(ts.prop('src'));
+        } else if (ts.is('[typeof]') && ts.not('[about]')) {
+            local_currentObjectRessource = new rdf.BlankNode();
+            local_typedRessource = local_currentObjectRessource;
+        }
     }
 
     // seq 7
@@ -287,7 +372,7 @@ function processElement($, ts, context, graph) {
         console.log('Warning: rel / inlist not yet implemented..');
     }
 
-    // seq 10 TODO
+// seq 10 TODO
     if (ts.is('[rel]')) {
         console.log('Warning: rel not yet implemented..');
     }
@@ -295,7 +380,7 @@ function processElement($, ts, context, graph) {
         console.log('Warning: rev not yet implemented..');
     }
 
-    // seq 11
+// seq 11
     if (ts.is('[property]')) {
         // TODO: typed literal...
 
@@ -312,7 +397,7 @@ function processElement($, ts, context, graph) {
         local_currentObjectRessource = local_typedRessource;
     }
 
-    // seq 12
+// seq 12
     if (!local_skip && local_newSubject != null) {
         for (let i = 0; i < context.incompleteTriples; i++) {
             let icT = context.incompleteTriples[i];
@@ -327,7 +412,7 @@ function processElement($, ts, context, graph) {
         }
     }
 
-    // seq 13
+// seq 13
     ts.children('*').each(function () {
         let ts = $(this);
         let ctx;
@@ -358,128 +443,35 @@ function processElement($, ts, context, graph) {
         processElement($, ts, ctx, graph);
     });
 
-    // callback(graph);
+// callback(graph);
 
 }
 
+Object.defineProperty(Object.prototype, "hasOwnPropertyCI", {
+    value: function (prop) {
+        return Object.keys(this)
+                .filter(function (v) {
+                    return v.toLowerCase() === prop.toLowerCase();
+                }).length > 0;
+    },
+    enumerable: false
+});
 
-/**
- * parses RDFa from source (may be URL, file:// or a plain html string) to triples
- * @param source
- * @param callback
- */
-const parseRDFa = function (source, callback) {
 
-    getHTML(source, function (html) {
-
-        let $ = cheerio.load(html);
-        let graph = new rdf.Graph();
-
-        $(':root').each(function () {
-            let ts = $(this);
-            let ctx = getInitialContext($);
-
-            processElement($, ts, ctx, graph);
-
-        });
-
-        callback(graph);
-    });
-
-};
-
-/**
- * returns html content from file, web or plain html text
- * @param source can be URL starting with 'http' or file starting with 'file://' or plain html text
- * @param callback
- * @returns {string} html content
- */
-const getHTML = function (source, callback) {
-
-    source = source.trim();
-
-    if (source.startsWith('http')) {
-        baseURL = source;
-        request(source, function (error, response, html) {
-            if (!error && response.statusCode == 200) {
-                callback(html);
+Object.defineProperty(Object.prototype, "getCI", {
+    value: function (prop) {
+        let key, self = this;
+        for (key in self) {
+            if (self.hasOwnProperty(key)) {
+                if (key.toLowerCase() == prop.toLowerCase()) {
+                    return self[key];
+                }
             }
-        });
-
-    } else if (source.startsWith('file://')) {
-        baseURL = source;
-        fs.readFile(source.substr(7), 'utf-8', function (err, data) {
-            if (err) throw err;
-            callback(data);
-        })
-
-    } else if (source.startsWith('<') || source.startsWith('<')) {
-        throw new Error('plain html not possible atm..');
-        // callback(source);
-
-    } else {
-        throw new Error('could not detect input format');
-
-    }
-
-
-};
-
-// const processPrefixes = function (output, callback) {
-//
-//     $('[prefix]').each(function () {
-//         let multiPrefixString = $(this).prop('prefix');
-//
-//         multiPrefixString = multiPrefixString.replace(/:\s+/g, ':');
-//
-//         let prefixStrings = multiPrefixString.split(/\s+/);
-//
-//         // for (var prefixString in prefixStrings) {
-//         for (let i = 0; i < prefixStrings.length; i++) {
-//
-//             let key = prefixStrings[i].split(':')[0];
-//             let value = prefixStrings[i].substr(key.length + 1);
-//
-//             if (prefixes[key] != undefined && prefixes[key] != value) {
-//                 console.log('Warning: prefix ' + key + ':' + value + ' is supposed to be ' + prefixes[key])
-//             }
-//             prefixes[key] = value;
-//         }
-//     });
-//
-//     for (let prefix in prefixes) {
-//         if (prefixes.hasOwnProperty(prefix)) {
-//             if (output.contains(prefix + '\:'))
-//                 output = output.replaceAll(prefix + '\:', prefixes[prefix]);
-//         }
-//     }
-//
-//     callback(output);
-// };
-
-function getInitialContext($) {
-
-    let base = $('[xml\\:base]').prop('xml:base');
-    if (base == undefined)
-        base = baseURL;
-
-    let lang = $('[xml\\:lang]').prop('xml:lang');
-    if (base == undefined)
-        lang = null;
-
-    return new Context(
-        base,
-        base,
-        null,
-        [],
-        [],
-        lang,
-        rdfaInit.context,
-        rdfaInit.terms,
-        null
-    );
-}
-
+        }
+    },
+    //this keeps jquery happy
+    enumerable: false
+});
 
 // test exports
 // exports.getIRI = getIRI;

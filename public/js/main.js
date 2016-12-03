@@ -1,6 +1,6 @@
 $(document).ready(function () {
 
-    var inputField = $('#inputField');
+    let inputField = $('#inputField');
 
     // submit with ctrl + return
     inputField.keydown(function (event) {
@@ -13,7 +13,7 @@ $(document).ready(function () {
     inputField.on('keyup change breaks paste', function () {
 
         // count breaks in textarea
-        var text = $(this).val(),
+        let text = $(this).val(),
             matches = text.match(/\n/g),
             breaks = matches ? matches.length : 2;
 
@@ -26,7 +26,7 @@ $(document).ready(function () {
         submit();
     });
 
-    var submit = function () {
+    let submit = function () {
         $.post(
             '/',
             {
