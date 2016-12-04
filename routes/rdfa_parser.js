@@ -41,12 +41,16 @@ const dummy_parseRDFa = function (source, store, base = null, callback) {
 
     let graph = store.rdf.createGraph();
     graph.add(store.rdf.createTriple(
-        'http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/photo1.jpg',
-        'http://purl.org/dc/elements/1.1/creator',
-        'Mark Birbeck')
+        store.rdf.createNamedNode('http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/photo1.jpg'),
+        store.rdf.createNamedNode('http://purl.org/dc/elements/1.1/creator'),
+        store.rdf.createLiteral('Mark Birbeck'))
     );
-
+    store.insert(graph, success => {
+        if (success) {
+        }
+    });
     callback(store);
+
 };
 
 /**
