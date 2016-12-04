@@ -4,10 +4,10 @@
  */
 
 const fs = require('fs');
-const rdfstore = require('rdfstore');
+const rdfStore = require('rdfstore');
 const path = './cache/html5/';
 
-const rdfaparser = require('../routes/rdfa_parser.js');
+const rdfaParser = require('../routes/rdfa_parser.js');
 
 function getFiles(filter, callback) {
     let tests = [];
@@ -22,37 +22,49 @@ function getFiles(filter, callback) {
 
 }
 
-rdfstore.create(function (err, store) {
+// fill in the test numbers you want to run -> leave empty to run all
+const testToRun = ['0001', '0006'];
+// const testToRun = [];
 
-    getFiles('.html', function (tests) {
-        tests.forEach(test => {
+getFiles('.html', function (tests) {
+    tests.forEach(test => {
 
-            // console.log('parsing: ' + test);
+        if (testToRun.indexOf(test.split('/').slice(-1)[0].split('.')[0]) >= 0 || testToRun.length == 0) {
 
-            rdfaparser.parseRDFa('file://' + test, graph => {
-                store.insert(graph);
+            rdfStore.create(function (err, store) {
 
-                let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
 
-                let sparqlQuery = fs.readFileSync(sparqlFilename, 'utf-8');
+                rdfaParser.dummy_parseRDFa(
+                    'file://' + test,
+                    store,
+                    base = "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/",
+                    store => {
 
-                store.execute(sparqlQuery, (err, graph) => {
-                    if (err) {
-                        console.log(err);
-                        throw err;
-                    }
-                    console.log(graph);
+                        store.execute(
+                            'SELECT (COUNT(*) as ?count)' +
+                            'WHERE { ?s ?p ?o . }',
+                            function (err, tripleCount) {
 
-                });
+                                let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
+
+                                let sparqlQuery = fs.readFileSync(sparqlFilename, 'utf-8');
+
+                                store.execute(sparqlQuery, (err, graph) => {
+                                    if (err) {
+                                        console.log(err);
+                                        throw err;
+                                    }
+                                    console.log('sparql returned: ' + graph);
+
+
+                                });
+                            });
+                    });
 
             });
 
-
-        })
+        }
     });
-
-
-    // store.insert
 });
 
 

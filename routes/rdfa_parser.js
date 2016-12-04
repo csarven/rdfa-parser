@@ -26,23 +26,36 @@ const fs = require('fs');
 const uriJs = require('uri-js');
 const xnv = require('xml-name-validator');
 const rdf = require('rdf');
+const rdfStore = require('rdfstore');
 
 const request = require('request');
 const os = require('os');
 
 
-let baseURL = "";
+// let baseURL = "";
 
 require('./classes.js');
 const rdfaInit = require("./rdfa_core.json");
 
+const dummy_parseRDFa = function (source, store, base = null, callback) {
+
+    let graph = store.rdf.createGraph();
+    graph.add(store.rdf.createTriple(
+        'http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/photo1.jpg',
+        'http://purl.org/dc/elements/1.1/creator',
+        'Mark Birbeck')
+    );
+
+    callback(store);
+};
 
 /**
  * parses RDFa from source (may be URL, file:// or a plain html string) to triples
  * @param source
+ * @param base optional set base to a specific value
  * @param callback
  */
-const parseRDFa = function (source, callback) {
+const parseRDFa = function (source, base = null, callback) {
 
     getHTML(source, function (html) {
 
@@ -52,7 +65,7 @@ const parseRDFa = function (source, callback) {
 
         $(':root').each(function () {
             let ts = $(this);
-            let ctx = getInitialContext($);
+            let ctx = getInitialContext($, base);
 
             processElement($, ts, ctx, graph);
 
@@ -74,7 +87,7 @@ const getHTML = function (source, callback) {
     source = source.trim();
 
     if (source.startsWith('http')) {
-        baseURL = source;
+        // baseURL = source;
         request(source, function (error, response, html) {
             if (!error && response.statusCode == 200) {
                 callback(html);
@@ -82,7 +95,7 @@ const getHTML = function (source, callback) {
         });
 
     } else if (source.startsWith('file://')) {
-        baseURL = source;
+        // baseURL = source;
         fs.readFile(source.substr(7), 'utf-8', function (err, data) {
             if (err) throw err;
             callback(data);
@@ -100,13 +113,15 @@ const getHTML = function (source, callback) {
 
 };
 
-function getInitialContext($) {
+function getInitialContext($, base) {
 
-    let base = $('[xml\\:base]').prop('xml:base');
-    if (base == undefined)
-        base = $('base').prop('href');
-    if (base == undefined)
-        base = getIRI(baseURL);
+    if (base == null) {
+        base = $('[xml\\:base]').prop('xml:base');
+        if (base == undefined)
+            base = $('base').prop('href');
+        if (base == undefined)
+            base = getIRI(source);
+    }
 
     let lang = $('[xml\\:lang]').prop('xml:lang');
     if (lang == undefined)
@@ -151,7 +166,6 @@ function getIRI(string) {
 }
 
 function processElement($, ts, context, graph) {
-
 
     function getSafeCURIE(prop) {
 
@@ -476,5 +490,6 @@ Object.defineProperty(Object.prototype, "getCI", {
 // test exports
 // exports.getIRI = getIRI;
 
+exports.dummy_parseRDFa = dummy_parseRDFa;
+exports.getHTML = getHTML;
 exports.parseRDFa = parseRDFa;
-// let local_currentPropertyValue = "";
