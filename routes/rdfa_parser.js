@@ -23,10 +23,10 @@
 
 const cheerio = require('cheerio');
 const fs = require('fs');
-const uriJs = require('uri-js');
-const xnv = require('xml-name-validator');
-const rdf = require('rdf');
-const rdfStore = require('rdfstore');
+// const uriJs = require('uri-js');
+// const xnv = require('xml-name-validator');
+// const rdf = require('rdf');
+// const rdfStore = require('rdfstore');
 
 const request = require('request');
 const os = require('os');
@@ -37,35 +37,40 @@ const os = require('os');
 require('./classes.js');
 const rdfaInit = require("./rdfa_core.json");
 
-const dummy_parseRDFa = function (source, store, base = null, callback) {
+global.store = null;
 
-    let graph = store.rdf.createGraph();
-    graph.add(store.rdf.createTriple(
-        store.rdf.createNamedNode('http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/photo1.jpg'),
-        store.rdf.createNamedNode('http://purl.org/dc/elements/1.1/creator'),
-        store.rdf.createLiteral('Mark Birbeck'))
-    );
-    store.insert(graph, success => {
-        if (success) {
-        }
-    });
-    callback(store);
-
-};
+// const dummy_parseRDFa = function (source, store, base = null, callback) {
+//
+//     let graph = store.rdf.createGraph();
+//     graph.add(store.rdf.createTriple(
+//         store.rdf.createNamedNode('http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/photo1.jpg'),
+//         store.rdf.createNamedNode('http://purl.org/dc/elements/1.1/creator'),
+//         store.rdf.createLiteral('Mark Birbeck'))
+//     );
+//     store.insert(graph, (err, inserted) => {
+//         if (!err && inserted) {
+//             callback(store);
+//         }
+//     });
+//
+// };
 
 /**
  * parses RDFa from source (may be URL, file:// or a plain html string) to triples
  * @param source
+ * @param store rdfstore instance to insert triples
  * @param base optional set base to a specific value
  * @param callback
  */
-const parseRDFa = function (source, base = null, callback) {
+const parseRDFa = function (source, store, base = null, callback) {
+
+    global.store = store;
 
     getHTML(source, function (html) {
 
         let $ = cheerio.load(html);
 
-        let graph = new rdf.Graph();
+        let graph = global.store.rdf.createGraph();
 
         $(':root').each(function () {
             let ts = $(this);
@@ -75,7 +80,12 @@ const parseRDFa = function (source, base = null, callback) {
 
         });
 
-        callback(graph);
+        global.store.insert(graph, (err, inserted) => {
+            if (!err && inserted) {
+                callback(global.store);
+            }
+        });
+
     });
 
 };
@@ -91,7 +101,6 @@ const getHTML = function (source, callback) {
     source = source.trim();
 
     if (source.startsWith('http')) {
-        // baseURL = source;
         request(source, function (error, response, html) {
             if (!error && response.statusCode == 200) {
                 callback(html);
@@ -99,7 +108,7 @@ const getHTML = function (source, callback) {
         });
 
     } else if (source.startsWith('file://')) {
-        // baseURL = source;
+        //noinspection JSUnresolvedFunction
         fs.readFile(source.substr(7), 'utf-8', function (err, data) {
             if (err) throw err;
             callback(data);
@@ -124,7 +133,7 @@ function getInitialContext($, base) {
         if (base == undefined)
             base = $('base').prop('href');
         if (base == undefined)
-            base = getIRI(source);
+            base = source;
     }
 
     let lang = $('[xml\\:lang]').prop('xml:lang');
@@ -164,113 +173,29 @@ let add_local_iriMaps = function (l_iriMaps, prefixString) {
 
 };
 
-function getIRI(string) {
-    let uri = uriJs.parse(string);
-    return uriJs.serialize(uri, {iri: true, absolutePath: true});
-}
-
 function processElement($, ts, context, graph) {
-
-    function getSafeCURIE(prop) {
-
-        if (prop == undefined)
-            return undefined;
-
-        let prefix;
-        if (!prop.includes(':') || prop.split(':')[0] == "") {
-            prefix = 'xhr'; // standard for rdfa
-        } else if (prop.split(':')[0] == '_') {
-            return undefined;
-        } else {
-            prefix = prop.split(':')[0];
-        }
-
-        // verify xml name
-        if (!xnv.name(prefix).success) {
-            return undefined;
-        }
-
-        let reference = prop.substr(prefix.length + 1);
-
-        if (local_iriMappings.hasOwnProperty(prefix)) {
-            return getIRI(local_iriMappings[prefix] + reference);
-        } else {
-            return undefined;
-        }
-
-    }
-
-    function getCURIE(prop) {
-        let curie = getSafeCURIE(prop);
-        if (curie == undefined) {
-            return getIRI(prop);
-        } else {
-            return curie;
-        }
-    }
-
-    function getSafeCURIEorCURIEorIRI(prop) {
-        let braces = /\[(.*?)\]/g;
-
-        if (braces.test(prop)) {
-            return getSafeCURIE(prop);
-        } else {
-            return getCURIE(prop);
-        }
-    }
-
-    function getTERM(string) {
-        if (local_defaultVocabulary != null) {
-            return local_defaultVocabulary + string;
-        } else if (local_termMappings.hasOwnProperty(string)) {
-            return local_termMappings[string];
-        } else if (local_termMappings.hasOwnPropertyCI(string)) {
-            return local_termMappings.getCI(string);
-        }
-        return undefined;
-    }
-
-    function getTERMorCURIEorAbsIRIs(string) {
-        let multiString = string.replace(/:\s+/g, ':');
-        let Strings = multiString.split(/\s+/);
-
-        let result = [];
-
-        for (let i = 0; i < Strings.length; i++) {
-            let term = getTERM(Strings[i]);
-            if (term != undefined) {
-                result.push(getTERM(Strings[i]));
-
-            } else if (getSafeCURIE(Strings[i]) != undefined) {
-                result.push(getSafeCURIE(Strings[i]));
-
-            } else if (getIRI(Strings[i]) != undefined) { // TODO: gib des a undefined zruck?
-                result.push(getIRI(Strings[i]));
-
-            } else {
-                return undefined;
-            }
-        }
-    }
 
     // reference: https://www.w3.org/TR/rdfa-core/#s_sequence
     //seq 1
     let local_skip = false;
     let local_newSubject = null;
-    let local_currentObjectRessource = null;
-    let local_typedRessource = null;
+    let local_currentObjectResource = null;
+    let local_currentPropertyValue = null;
+    let local_typedResource = null;
     let local_iriMappings = context.iriMappings;
     let local_incompleteTriples = null;
     let local_listMappings = context.listMappings;
-    // let local_language = context.language;
     let local_termMappings = context.termMappings;
     let local_defaultVocabulary = context.defaultVocabulary;
 
     //seq 2
     if (ts.is('[vocab]')) {
-        let voc = ts.prop('vocab');
-        local_defaultVocabulary = getIRI(voc);
-        graph.add(new rdf.Triple(context.base, 'http://www.w3.org/ns/rdfa#usesVocabulary', voc));
+        local_defaultVocabulary = context.getURI(ts, 'vocab');
+        graph.add(global.store.rdf.createTriple(
+            global.store.rdf.createNamedNode(context.base),
+            global.store.rdf.createNamedNode('http://www.w3.org/ns/rdfa#usesVocabulary'),
+            global.store.rdf.createLiteral(local_defaultVocabulary))
+        );
     }
 
     // seq 3
@@ -291,27 +216,27 @@ function processElement($, ts, context, graph) {
         if (ts.is('[property]') && ts.not('[content]') && ts.not('[datatype]')) {
 
             if (ts.is('[about]')) {
-                local_newSubject = getSafeCURIEorCURIEorIRI(ts.prop('about'))
+                local_newSubject = context.getURI(ts, 'about');
             } else if (ts.is(':root')) {
-                local_newSubject = getSafeCURIEorCURIEorIRI(''); // TODO: direkt?
+                local_newSubject = context.parseTermOrCURIEOrAbsURI('');
             } else if (context.parentObject != null) {
                 local_newSubject = context.parentObject;
             }
 
             if (ts.is('[typeof]')) {
                 if (local_newSubject != null || ts.is(':root')) {
-                    local_typedRessource = local_newSubject;
+                    local_typedResource = local_newSubject;
                 } else {
                     if (ts.is('[resource]')) {
-                        local_typedRessource = getSafeCURIEorCURIEorIRI(ts.prop('resource'));
+                        local_typedResource = context.getURI(ts, 'resource');
                     } else if (ts.is('[href]')) {
-                        local_typedRessource = getIRI(ts.prop('href'));
+                        local_typedResource = context.getURI(ts, 'href');
                     } else if (ts.is('[src]')) {
-                        local_typedRessource = getIRI(ts.prop('src'));
+                        local_typedResource = context.getURI(ts, 'src');
                     } else {
-                        local_typedRessource = new rdf.BlankNode()
+                        local_typedResource = store.rdf.createBlankNode();
                     }
-                    local_currentObjectRessource = local_typedRessource;
+                    local_currentObjectResource = local_typedResource;
                 }
 
             }
@@ -319,18 +244,18 @@ function processElement($, ts, context, graph) {
             // seq 5.2
         } else {
             if (ts.is('[about]')) {
-                local_newSubject = getSafeCURIEorCURIEorIRI(ts.prop('about'))
+                local_newSubject = context.getURI(ts, 'about');
             } else if (ts.is('[resource]')) {
-                local_newSubject = getSafeCURIEorCURIEorIRI(ts.prop('resource'));
+                local_newSubject = context.getURI(ts, 'resource');
             } else if (ts.is('[href]')) {
-                local_newSubject = getIRI(ts.prop('href'));
+                local_newSubject = context.getURI(ts, 'href');
             } else if (ts.is('[src]')) {
-                local_newSubject = getIRI(ts.prop('src'));
+                local_newSubject = context.getURI(ts, 'src');
             } else {
                 if (ts.is(':root')) {
-                    local_newSubject = getSafeCURIEorCURIEorIRI('');
+                    local_newSubject = context.parseTermOrCURIEOrAbsURI('');
                 } else if (ts.is('[typeof]')) {
-                    local_newSubject = new rdf.BlankNode()
+                    local_newSubject = store.rdf.createBlankNode();
                 } else if (context.parentObject != null) {
                     local_newSubject = context.parentObject;
                     if (ts.is('[property]')) {
@@ -340,53 +265,57 @@ function processElement($, ts, context, graph) {
             }
 
             if (ts.is('[typeof]')) {
-                local_typedRessource = local_newSubject;
+                local_typedResource = local_newSubject;
             }
         }
 
         // seq 6
     } else {
         if (ts.is('[about]')) {
-            local_newSubject = getSafeCURIEorCURIEorIRI(ts.prop('about'));
+            local_newSubject = context.getURI(ts, 'about');
             if (ts.is('[typeof]')) {
-                local_typedRessource = local_newSubject;
+                local_typedResource = local_newSubject;
             }
         } else if (ts.is(':root')) {
-            local_newSubject = getSafeCURIEorCURIEorIRI('');
+            local_newSubject = context.parseTermOrCURIEOrAbsURI('');
         } else if (context.parentObject != null) {
             local_newSubject = context.parentObject;
         }
 
         if (ts.is('[resource]')) {
-            local_currentObjectRessource = getSafeCURIEorCURIEorIRI(ts.prop('resource'));
+            local_currentObjectResource = context.getURI(ts, 'resource');
         } else if (ts.is('[href]')) {
-            local_currentObjectRessource = getIRI(ts.prop('href'));
+            local_currentObjectResource = context.getURI(ts, 'href');
         } else if (ts.is('[src]')) {
-            local_currentObjectRessource = getIRI(ts.prop('src'));
+            local_currentObjectResource = context.getURI(ts, 'src');
         } else if (ts.is('[typeof]') && ts.not('[about]')) {
-            local_currentObjectRessource = new rdf.BlankNode();
-            local_typedRessource = local_currentObjectRessource;
+            local_currentObjectResource = store.rdf.createBlankNode();
+            local_typedResource = local_currentObjectResource;
         }
     }
 
     // seq 7
-    if (local_typedRessource != null) {
-        let values = getTERMorCURIEorAbsIRIs(ts.prop('typeof'));
+    if (local_typedResource != null) {
+        let values = context.getURI(ts, 'typeof');
+
         if (values) {
             for (let i = 0; i < values.length; i++) {
-                graph.add(local_typedRessource, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', values[i])
+                graph.add(global.store.rdf.createTriple(
+                    global.store.rdf.createNamedNode(local_typedResource),
+                    global.store.rdf.createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                    global.store.rdf.createLiteral(values[i])));
             }
         }
 
     }
 
     // seq 8
-    if (local_newSubject != null) {
+    if (local_newSubject != null && local_newSubject != context.parentObject) {
         local_listMappings = [];
     }
 
-    if (local_currentObjectRessource != null) {
-        // TODO: seq 9 core
+// seq 9 TODO
+    if (local_currentObjectResource != null) {
         console.log('Warning: rel / inlist not yet implemented..');
     }
 
@@ -402,37 +331,50 @@ function processElement($, ts, context, graph) {
     if (ts.is('[property]')) {
         // TODO: typed literal...
 
-        if (ts.is('[ressource]')) {
-            local_currentObjectRessource = getSafeCURIEorCURIEorIRI(ts.prop('ressource'));
+        if (ts.is('[resource]')) {
+            local_currentPropertyValue = context.getURI(ts, 'resource');
         } else if (ts.is('[href]')) {
-            local_currentObjectRessource = getSafeCURIEorCURIEorIRI(ts.prop('href'));
+            local_currentPropertyValue = context.getURI(ts, 'href');
         } else if (ts.is('[src]')) {
-            local_currentObjectRessource = getSafeCURIEorCURIEorIRI(ts.prop('src'));
+            local_currentPropertyValue = context.getURI(ts, 'src');
         }
+    } else if (ts.is('[typeof]') && ts.not('[about]')) {
+        local_currentPropertyValue = local_typedResource;
+    } else {
+        // local_currentPropertyValue = store.rdf.createLiteral(ts.text()); //text?
     }
 
-    if (ts.is('[typeof]') && ts.not('[abaout]')) {
-        local_currentObjectRessource = local_typedRessource;
+    if (local_currentPropertyValue) {
+        graph.add(global.store.rdf.createTriple(
+            global.store.rdf.createNamedNode(local_newSubject),
+            global.store.rdf.createNamedNode(this.parsePredicate(ts.prop('property'))),
+            global.store.rdf.createNamedNode(local_currentPropertyValue)));
     }
 
 // seq 12
     if (!local_skip && local_newSubject != null) {
         for (let i = 0; i < context.incompleteTriples; i++) {
             let icT = context.incompleteTriples[i];
-            if (icT == 'none') {
+            if (icT.direction() == 'none') {
                 // TODO: wtf?!?
                 // context.incompleteTriples.push(new incompleteTriples(local_newSubject, null, null, "WTF"))
-            } else if (icT == 'forward') {
-                graph.add(new Triple(context.parentSubject, icT.predicate, local_newSubject));
-            } else if (icT == 'reverse') {
-                graph.add(new Triple(local_newSubject, icT.predicate, context.parentSubject));
+            } else if (icT.direction == 'forward') {
+                graph.add(global.store.rdf.createTriple(
+                    global.store.rdf.createNamedNode(context.parentSubject),
+                    global.store.rdf.createNamedNode(icT.predicate),
+                    global.store.rdf.createLiteral(local_newSubject)));
+            } else if (icT.direction == 'reverse') {
+                graph.add(global.rdf.createTriple(
+                    global.store.rdf.createNamedNode(local_newSubject),
+                    global.store.rdf.createNamedNode(icT.predicate),
+                    global.store.rdf.createLiteral(context.parentSubject)));
             }
         }
     }
 
 // seq 13
     ts.children('*').each(function () {
-        let ts = $(this);
+        let ths = $(this);
         let ctx;
 
         if (local_skip) {
@@ -443,8 +385,8 @@ function processElement($, ts, context, graph) {
             ctx = new Context(
                 context.base,
                 (local_newSubject != null) ? local_newSubject : context.parentSubject,
-                (local_currentObjectRessource != null)
-                    ? local_currentObjectRessource
+                (local_currentObjectResource != null)
+                    ? local_currentObjectResource
                     : (local_newSubject != null)
                     ? local_newSubject
                     : context.parentSubject,
@@ -457,11 +399,8 @@ function processElement($, ts, context, graph) {
             );
 
         }
-        //// DO TODO..
-        processElement($, ts, ctx, graph);
+        processElement($, ths, ctx, graph);
     });
-
-// callback(graph);
 
 }
 
@@ -491,9 +430,6 @@ Object.defineProperty(Object.prototype, "getCI", {
     enumerable: false
 });
 
-// test exports
-// exports.getIRI = getIRI;
 
-exports.dummy_parseRDFa = dummy_parseRDFa;
 exports.getHTML = getHTML;
 exports.parseRDFa = parseRDFa;

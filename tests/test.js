@@ -23,22 +23,22 @@ function getFiles(filter, callback) {
 }
 
 // fill in the test numbers you want to run -> leave empty to run all
-const testToRun = ['0001', '0006'];
+const testToRun = ['0001'];
 // const testToRun = [];
 
 getFiles('.html', function (tests) {
     tests.forEach(test => {
 
         if (testToRun.indexOf(test.split('/').slice(-1)[0].split('.')[0]) >= 0 || testToRun.length == 0) {
-            console.log('running test ' + test)
 
             rdfStore.create(function (err, store) {
 
-                rdfaParser.dummy_parseRDFa(
+                rdfaParser.parseRDFa(
                     'file://' + test,
                     store,
                     base = "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/",
                     store => {
+                        console.log('##########################################\n' + 'running test ' + test);
                         // count triples
                         store.execute("SELECT * { ?s ?p ?o }", function (success, results) {
                             console.log('created triples: ' + results.length);
@@ -59,7 +59,7 @@ getFiles('.html', function (tests) {
 
                         });
 
-                        store.clear;
+                        store.clear();
                     }
                 );
 
