@@ -21,21 +21,20 @@
 
 'use strict';
 
+const request = require('request');
 const cheerio = require('cheerio');
 const fs = require('fs');
-// const uriJs = require('uri-js');
-// const xnv = require('xml-name-validator');
-// const rdf = require('rdf');
-// const rdfStore = require('rdfstore');
-
-const request = require('request');
 const os = require('os');
 
-
-// let baseURL = "";
-
 require('./classes.js');
-const rdfaInit = require("./rdfa_core.json");
+const rdfaCore = require('./rdfa_core.json');
+
+const PlainLiteralURI = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral';
+const typeURI = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+const usesVocab = 'http://www.w3.org/ns/rdfa#usesVocabulary';
+const XMLLiteralURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#XMLLiteral";
+const HTMLLiteralURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#HTML";
+const objectURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#object";
 
 global.store = null;
 
@@ -149,8 +148,8 @@ function getInitialContext($, base) {
         [],
         [],
         lang,
-        rdfaInit.context,
-        rdfaInit.terms,
+        rdfaCore.context,
+        rdfaCore.terms,
         null
     );
 }
@@ -193,7 +192,7 @@ function processElement($, ts, context, graph) {
         local_defaultVocabulary = context.getURI(ts, 'vocab');
         graph.add(global.store.rdf.createTriple(
             global.store.rdf.createNamedNode(context.base),
-            global.store.rdf.createNamedNode('http://www.w3.org/ns/rdfa#usesVocabulary'),
+            global.store.rdf.createNamedNode(usesVocab),
             global.store.rdf.createLiteral(local_defaultVocabulary))
         );
     }
@@ -302,7 +301,7 @@ function processElement($, ts, context, graph) {
             for (let i = 0; i < values.length; i++) {
                 graph.add(global.store.rdf.createTriple(
                     global.store.rdf.createNamedNode(local_typedResource),
-                    global.store.rdf.createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                    global.store.rdf.createNamedNode(typeURI),
                     global.store.rdf.createLiteral(values[i])));
             }
         }
@@ -329,26 +328,78 @@ function processElement($, ts, context, graph) {
 
 // seq 11
     if (ts.is('[property]')) {
-        // TODO: typed literal...
 
-        if (ts.is('[resource]')) {
-            local_currentPropertyValue = context.getURI(ts, 'resource');
-        } else if (ts.is('[href]')) {
-            local_currentPropertyValue = context.getURI(ts, 'href');
-        } else if (ts.is('[src]')) {
-            local_currentPropertyValue = context.getURI(ts, 'src');
+        let datatype, content = null;
+
+        if (ts.is('[datatype]')) {
+            datatype = ts.prop('datatype') == '' ? PlainLiteralURI : context.getURI(ts, 'datatype');
+
+            // green-turtle does some datetime stuff here..??
+            // if (ts.is('[datetime]') && ts.not('[content]')) {
+            //     content = ts.prop('datetime');
+            // } else {
+            content =
+                datatype == XMLLiteralURI || datatype == HTMLLiteralURI
+                    ? null
+                    : (ts.is('[content]')
+                        ? ts.prop('content')
+                        : ts.textContent
+                );
+            // }
+        } else if (ts.is('[content]')) {
+            datatype = PlainLiteralURI;
+            content = ts.prop('content')
+
+        } else if (ts.not('[rev]') && ts.not('[rev]')) {
+            if (ts.is('[resource]')) {
+                content = context.getURI(ts, 'resource');
+            } else if (ts.is('[href]')) {
+                content = context.getURI(ts, 'href');
+            } else if (ts.is('[src]')) {
+                content = context.getURI(ts, 'src');
+            }
+
+            if (content) {
+                datatype = objectURI;
+            }
+
+        } else if (ts.is('[typeof]') && ts.not('[about]')) {
+            datatype = objectURI;
+            content = local_typedResource;
+        } else {
+            content = ts.textContent;
+            if (!datatype) {
+                datatype = PlainLiteralURI;
+            }
         }
-    } else if (ts.is('[typeof]') && ts.not('[about]')) {
-        local_currentPropertyValue = local_typedResource;
-    } else {
-        // local_currentPropertyValue = store.rdf.createLiteral(ts.text()); //text?
-    }
 
-    if (local_currentPropertyValue) {
-        graph.add(global.store.rdf.createTriple(
-            global.store.rdf.createNamedNode(local_newSubject),
-            global.store.rdf.createNamedNode(this.parsePredicate(ts.prop('property'))),
-            global.store.rdf.createNamedNode(local_currentPropertyValue)));
+        let values = context.getURI(ts, 'property');
+
+        for (let i = 0; i < values.length; i++) {
+            let predicate = context.parsePredicate(ts.prop('property'));
+
+            if (predicate) {
+                if (ts.is('[inlist]')) {
+                    // TODO: inlist
+                    console.log('Warning: inlist not yet implemented..');
+                } else {
+                    if (datatype == XMLLiteralURI || datatype == HTMLLiteralURI) {
+                        graph.add(global.store.rdf.createTriple(
+                            global.store.rdf.createNamedNode(local_newSubject),
+                            global.store.rdf.createNamedNode(predicate),
+                            global.store.rdf.createLiteral(ts.childNodes, '', datatype)
+                        ));
+                    } else {
+                        graph.add(global.store.rdf.createTriple(
+                            global.store.rdf.createNamedNode(local_newSubject),
+                            global.store.rdf.createNamedNode(predicate),
+                            global.store.rdf.createLiteral(content, local_language, datatype)
+                        ));
+                    }
+                }
+            }
+
+        }
     }
 
 // seq 12
@@ -357,7 +408,7 @@ function processElement($, ts, context, graph) {
             let icT = context.incompleteTriples[i];
             if (icT.direction() == 'none') {
                 // TODO: wtf?!?
-                // context.incompleteTriples.push(new incompleteTriples(local_newSubject, null, null, "WTF"))
+                // context.incompleteTriples.push(new incompleteTriples(local_newSubject, null, null, 'WTF'))
             } else if (icT.direction == 'forward') {
                 graph.add(global.store.rdf.createTriple(
                     global.store.rdf.createNamedNode(context.parentSubject),
@@ -404,7 +455,7 @@ function processElement($, ts, context, graph) {
 
 }
 
-Object.defineProperty(Object.prototype, "hasOwnPropertyCI", {
+Object.defineProperty(Object.prototype, 'hasOwnPropertyCI', {
     value: function (prop) {
         return Object.keys(this)
                 .filter(function (v) {
@@ -415,7 +466,7 @@ Object.defineProperty(Object.prototype, "hasOwnPropertyCI", {
 });
 
 
-Object.defineProperty(Object.prototype, "getCI", {
+Object.defineProperty(Object.prototype, 'getCI', {
     value: function (prop) {
         let key, self = this;
         for (key in self) {

@@ -42,7 +42,12 @@ getFiles('.html', function (tests) {
                         // count triples
                         store.execute("SELECT * { ?s ?p ?o }", function (success, results) {
                             console.log('created triples: ' + results.length);
+
+                            for (let i = 0; i < results.length; i++) {
+                                console.log("<" + results[i].s.value + "> <" + results[i].p.value + "> <" + results[i].s.value + ">");
+                            }
                         });
+
 
                         let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
 

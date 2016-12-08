@@ -39,6 +39,7 @@ class incompleteTriples extends rdf.Triple {
 
 class Context {
 
+
     constructor(base,
                 parentSubject,
                 parentObject,
@@ -391,7 +392,7 @@ class Context {
                 // blank node
                 return "_:" + value.substring(colon + 1);
             } else if (NCNAME.test(prefix)) {
-                uri = prefixes[prefix];
+                uri = this.iriMappings[prefix];
                 if (uri) {
                     return uri + value.substring(colon + 1);
                 }
@@ -417,15 +418,15 @@ class Context {
             let values = Context.tokenize(value);
             let list = [];
             for (let i = 0; i < values.length; i++) {
-                let object = this.parseTermOrCURIEOrAbsURI(values[i], vocabulary, context.terms, prefixes, base);
+                let object = this.parseTermOrCURIEOrAbsURI(values[i]);
                 list.push(object);
             }
 
-            if (list.length == 1) {
-                return list[0];
-            } else {
+            // if (list.length == 1) {
+            //     return list[0];
+            // } else {
                 return list;
-            }
+            // }
 
 
         } else {
