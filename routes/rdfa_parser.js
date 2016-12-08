@@ -38,21 +38,25 @@ const objectURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#object";
 
 global.store = null;
 
-// const dummy_parseRDFa = function (source, store, base = null, callback) {
-//
-//     let graph = store.rdf.createGraph();
-//     graph.add(store.rdf.createTriple(
-//         store.rdf.createNamedNode('http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/photo1.jpg'),
-//         store.rdf.createNamedNode('http://purl.org/dc/elements/1.1/creator'),
-//         store.rdf.createLiteral('Mark Birbeck'))
-//     );
-//     store.insert(graph, (err, inserted) => {
-//         if (!err && inserted) {
-//             callback(store);
-//         }
-//     });
-//
-// };
+const dummy_parseRDFa = function (source, store, base = null, callback) {
+
+    let graph = store.rdf.createGraph();
+
+
+    global.store = store;
+
+    graph.add(global.store.rdf.createTriple(
+        global.store.rdf.createNamedNode('http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/photo1.jpg'),
+        global.store.rdf.createNamedNode('http://purl.org/dc/elements/1.1/creator'),
+        global.store.rdf.createLiteral('Mark Birbeck'))
+    );
+    store.insert(graph, (err, inserted) => {
+        if (!err && inserted) {
+            callback(store);
+        }
+    });
+
+};
 
 /**
  * parses RDFa from source (may be URL, file:// or a plain html string) to triples
@@ -113,7 +117,7 @@ const getHTML = function (source, callback) {
             callback(data);
         })
 
-    } else if (source.startsWith('<') || source.startsWith('<')) {
+    } else if (source.startsWith('<') && source.endsWith('>')) {
         throw new Error('plain html not possible atm..');
         // callback(source);
 
@@ -182,10 +186,34 @@ function processElement($, ts, context, graph) {
     let local_currentPropertyValue = null;
     let local_typedResource = null;
     let local_iriMappings = context.iriMappings;
-    let local_incompleteTriples = null;
+    let local_incompleteTriples = [];
     let local_listMappings = context.listMappings;
+    let local_listMappingDifferent = context.parentSubject ? false : true;
     let local_termMappings = context.termMappings;
     let local_defaultVocabulary = context.defaultVocabulary;
+
+
+    // let relAttPredicates = [];
+    // if (ts.is('[rel]')) {
+    //     let values = Context.tokenize(ts.prop('rel'));
+    //     for (let i = 0; i < values.length; i++) {
+    //         let predicate = this.parsePredicate(values[i], vocabulary, context.terms, prefixes, base, this.inHTMLMode && propertyAtt != null);
+    //         if (predicate) {
+    //             relAttPredicates.push(predicate);
+    //         }
+    //     }
+    // }
+    // let revAttPredicates = [];
+    // if (ts.is('[rev]')) {
+    //     let values = this.tokenize(ts.prop('rev'));
+    //     for (let i = 0; i < values.length; i++) {
+    //         let predicate = this.parsePredicate(values[i], vocabulary, context.terms, prefixes, base, this.inHTMLMode && propertyAtt != null);
+    //         if (predicate) {
+    //             revAttPredicates.push(predicate);
+    //         }
+    //     }
+    // }
+
 
     //seq 2
     if (ts.is('[vocab]')) {
@@ -309,22 +337,41 @@ function processElement($, ts, context, graph) {
     }
 
     // seq 8
-    if (local_newSubject != null && local_newSubject != context.parentObject) {
+    if (local_newSubject && local_newSubject != context.parentObject) {
         local_listMappings = [];
+        local_listMappingDifferent = true;
     }
 
 // seq 9 TODO
-    if (local_currentObjectResource != null) {
+    if (local_currentObjectResource) {
         console.log('Warning: rel / inlist not yet implemented..');
+    } else {
+        if (local_newSubject && !local_currentObjectResource && (ts.is('[rel]') || ts.is('[rev]'))) {
+            local_currentObjectResource = store.rdf.createBlankNode();
+            //alert(current.tagName+": generated blank node, newSubject="+newSubject+" currentObjectResource="+currentObjectResource);
+        }
+
+        if (ts.is('[rel]') && ts.is('[inlist]')) {
+            console.log('Warning: inlist not yet implemented..');
+
+        } else if (ts.is('[rel]')) {
+            let relAtt = context.getURI(ts, 'rel');
+            for (let i = 0; i < relAtt.length; i++) {
+                // incomplete.push({predicate: relAttPredicates[i], forward: true});
+                local_incompleteTriples.push(new incompleteTriples(null, relAtt[i], null, 'forward'))
+            }
+
+        } else if (ts.is('[rev]')) {
+            let revAtt = context.getURI(ts, 'rev');
+            for (let i = 0; i < revAtt.length; i++) {
+                // incomplete.push({predicate: relAttPredicates[i], forward: true});
+                local_incompleteTriples.push(new incompleteTriples(null, revAtt[i], null, 'reverse'))
+            }
+        }
+
     }
 
-// seq 10 TODO
-    if (ts.is('[rel]')) {
-        console.log('Warning: rel not yet implemented..');
-    }
-    if (ts.is('[rev]')) {
-        console.log('Warning: rev not yet implemented..');
-    }
+
 
 // seq 11
     if (ts.is('[property]')) {
@@ -363,11 +410,12 @@ function processElement($, ts, context, graph) {
                 datatype = objectURI;
             }
 
-        } else if (ts.is('[typeof]') && ts.not('[about]')) {
+        }
+        if (ts.is('[typeof]') && ts.not('[about]')) {
             datatype = objectURI;
             content = local_typedResource;
         } else {
-            content = ts.textContent;
+            content = ts.text();
             if (!datatype) {
                 datatype = PlainLiteralURI;
             }
@@ -387,13 +435,13 @@ function processElement($, ts, context, graph) {
                         graph.add(global.store.rdf.createTriple(
                             global.store.rdf.createNamedNode(local_newSubject),
                             global.store.rdf.createNamedNode(predicate),
-                            global.store.rdf.createLiteral(ts.childNodes, '', datatype)
+                            global.store.rdf.createLiteral(ts.childNodes, null, datatype) // TODO: lang?
                         ));
                     } else {
                         graph.add(global.store.rdf.createTriple(
                             global.store.rdf.createNamedNode(local_newSubject),
                             global.store.rdf.createNamedNode(predicate),
-                            global.store.rdf.createLiteral(content, local_language, datatype)
+                            global.store.rdf.createLiteral(content) //, local_language, datatype) // TODO: lang
                         ));
                     }
                 }
@@ -484,3 +532,4 @@ Object.defineProperty(Object.prototype, 'getCI', {
 
 exports.getHTML = getHTML;
 exports.parseRDFa = parseRDFa;
+exports.dummy_parseRDFa = dummy_parseRDFa;

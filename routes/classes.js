@@ -58,7 +58,7 @@ class Context {
         if (typeof parentSubject == 'string')
             this.parentSubject = parentSubject;
         else
-            this._base = base;
+            this._parentSubject = base;
 
         this._parentObject = parentObject;
         this._incompleteTriples = incompleteTriples;
