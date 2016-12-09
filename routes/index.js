@@ -54,7 +54,7 @@ var getHTML = function (source, callback) {
 
     source = source.trim();
 
-    if (source.startsWith('http')) {
+    if (source.startsWith('http')) {						// Hier crawler einbauen
         request(source, function (error, response, html) {
             if (!error && response.statusCode == 200) {
                 callback(html);
@@ -67,7 +67,7 @@ var getHTML = function (source, callback) {
             callback(data);
         })
 
-    } else if (source.startsWith('<') || source.startsWith('<')) {
+    } else if (source.startsWith('<') || source.startsWith('<')) {		// Wieso 2x '<' (opening tag)?
         callback(source);
 
     } else {
