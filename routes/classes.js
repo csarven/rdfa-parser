@@ -420,8 +420,6 @@ class Context {
             for (let i = 0; i < values.length; i++) {
                 let object = this.parseTermOrCURIEOrAbsURI(values[i]);
                 // let object = this.parseTermOrCURIEOrAbsURI(values[i], vocabulary, context.terms, prefixes, base);
-                let object = this.parseTermOrCURIEOrAbsURI(values[i]);
-                console.log("<<< " + object);
                 list.push(object);
             }
 
