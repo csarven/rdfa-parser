@@ -27,7 +27,7 @@ function getFiles(filter, callback) {
 }
 
 // fill in the test numbers you want to run -> leave empty to run all
-const testToRun = ['0006'];
+const testToRun = ['0001'];
 // const testToRun = [];
 
 getFiles('.html', function (tests) {

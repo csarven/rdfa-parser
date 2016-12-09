@@ -37,6 +37,7 @@ const HTMLLiteralURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#HTML";
 const objectURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#object";
 
 global.store = null;
+const logger = true;
 
 const dummy_parseRDFa = function (source, store, base = null, callback) {
 
@@ -178,6 +179,15 @@ let add_local_iriMaps = function (l_iriMaps, prefixString) {
 
 function processElement($, ts, context, graph) {
 
+    if(logger) {
+        console.log("\n**********************************************************************************");
+        console.log(" /--------------------\\");
+        console.log("|  Processing element  |");
+        console.log(" \\--------------------/");
+        console.log("\n" + ts + " \n");
+        console.log("**********************************************************************************");
+    }
+
     // reference: https://www.w3.org/TR/rdfa-core/#s_sequence
     //seq 1
     let local_skip = false;
@@ -224,10 +234,17 @@ function processElement($, ts, context, graph) {
             global.store.rdf.createLiteral(local_defaultVocabulary))
         );
     }
+    else if(logger) {
+        console.log("seq2 is skipped");
+    }
+    // TODO: else statement
 
     // seq 3
     if (ts.is('[prefix]')) {
         add_local_iriMaps(local_iriMappings, ts.prop('prefix'));
+    }
+    else if(logger) {
+        console.log("seq3 is skipped");
     }
 
     // seq 4
@@ -241,6 +258,10 @@ function processElement($, ts, context, graph) {
     if (ts.not('[rel]') && ts.not('[rev]')) {
         // seq 5.1
         if (ts.is('[property]') && ts.not('[content]') && ts.not('[datatype]')) {
+
+            if(logger) {
+                console.log("seq5.1 is processing ...");
+            }
 
             if (ts.is('[about]')) {
                 local_newSubject = context.getURI(ts, 'about');
@@ -270,6 +291,11 @@ function processElement($, ts, context, graph) {
 
             // seq 5.2
         } else {
+
+            if(logger) {
+                console.log("seq5.2 is processing ...");
+            }
+
             if (ts.is('[about]')) {
                 local_newSubject = context.getURI(ts, 'about');
             } else if (ts.is('[resource]')) {
@@ -285,7 +311,7 @@ function processElement($, ts, context, graph) {
                     local_newSubject = store.rdf.createBlankNode();
                 } else if (context.parentObject != null) {
                     local_newSubject = context.parentObject;
-                    if (ts.is('[property]')) {
+                    if (ts.is('[property]')) { // TODO: seq says, ts.not()
                         local_skip = true;
                     }
                 }
@@ -298,6 +324,11 @@ function processElement($, ts, context, graph) {
 
         // seq 6
     } else {
+
+        if(logger) {
+            console.log("seq6 is processing ...");
+        }
+
         if (ts.is('[about]')) {
             local_newSubject = context.getURI(ts, 'about');
             if (ts.is('[typeof]')) {
@@ -333,13 +364,18 @@ function processElement($, ts, context, graph) {
                     global.store.rdf.createLiteral(values[i])));
             }
         }
-
+    }
+    else if(logger) {
+        console.log("seq7 is skipped");
     }
 
     // seq 8
     if (local_newSubject && local_newSubject != context.parentObject) {
         local_listMappings = [];
         local_listMappingDifferent = true;
+    }
+    else if(logger) {
+        console.log("seq8 is skipped");
     }
 
 // seq 9 TODO
