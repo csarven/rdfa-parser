@@ -5,7 +5,9 @@
 
 const fs = require('fs');
 const rdfStore = require('rdfstore');
-const path = './cache/html5/';
+// const path = './cache/html5/';
+const path = './cache/own/';
+let ownTest = true;
 
 // var deasync = require('deasync');
 // var cp = require('child_process');
@@ -46,6 +48,7 @@ function analyse(query) {
 
 function getFiles(filter, callback) {
     let tests = [];
+
     fs.readdir(path, (err, files) => {
         files.forEach(file => {
             if (file.indexOf(filter) >= 0)
@@ -59,7 +62,7 @@ function getFiles(filter, callback) {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 // do not uncommend
-let logger = false;
+let logger = true;
 
 let totalTestCount = 170;
 let passedArr = [];
@@ -71,12 +74,11 @@ let testNumber = '';
 let testMaxToRun = ['9999'];
 let testToRun = [];
 let testNotToRun = [];
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 // uncomment to deactivate
 
 // fill in the test numbers you want to run
-//  testToRun = ['0099'];
+ testToRun = ['0006'];
 
 // run all tests, but not these from testNotToRun
 // testNotToRun = ['0014', '0017', '0033', '0048', '0050'];
@@ -89,9 +91,10 @@ testMaxToRun = ['0090'];
 getFiles('.html', function (tests) {
 // function runAll(tests) {
     tests.forEach(test => {
-        if ((testToRun.indexOf(getTestNumber(test)) >= 0 || testToRun.length == 0) &&
+        if (ownTest ||
+            ((testToRun.indexOf(getTestNumber(test)) >= 0 || testToRun.length == 0) &&
             testNotToRun.indexOf(getTestNumber(test)) < 0 &&
-            getTestNumber(test) <= testMaxToRun) {
+            getTestNumber(test) <= testMaxToRun)) {
 
             // let store1, store2;
             // let done1 = false, done2 = false;
@@ -157,11 +160,13 @@ getFiles('.html', function (tests) {
                                 }
                             });
 
-
+                            if(ownTest)
+                                return;
+                            
                             let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
 
                             let sparqlQueryOld = fs.readFileSync(sparqlFilename, 'utf-8');
-                            let sparqlQuery = sparqlQueryOld; // analyse(sparqlQueryOld);
+                            let sparqlQuery = sparqlQueryOld//analyse(sparqlQueryOld);
 
                             // console.log("Query: " + sparqlQuery);
 
@@ -220,7 +225,7 @@ function printResult() {
         let skipped = testCount - done;
 
         console.log("=====================================================================");
-        console.log("Tryed " + done + " tests (passed: " + passedArr.length + " || failed:" + failedArr.length + ") skipped: " + skipped + " of total: " + testCount);
+        console.log("Tryed " + done + " tests (passed:" + passedArr.length + " || failed:" + failedArr.length + ") skipped: " + skipped + " of total: " + testCount);
         if (failedArr.length > 0) console.log("\n>>> failed: " + failedArr);
         if (skippedArr.length > 0) console.log("\n>>> skipped: " + skippedArr);
         if(skipped != skippedArr.length) console.log("oha");

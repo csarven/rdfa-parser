@@ -38,7 +38,7 @@ const HTMLLiteralURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#HTML";
 const objectURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#object";
 
 global.store = null;
-const logger = false;
+const logger = true;
 
 const dummy_parseRDFa = function (source, store, base = null, callback) {
 
@@ -278,7 +278,7 @@ function processElement($, ts, context, graph) {
         //seq 2
         if (vocabAtt) {
             local_defaultVocabulary = context.getURI(ts, 'vocab');
-            newTripple(store, graph, context.base, usesVocab, local_defaultVocabulary);
+            newTripple(store, graph, context.base.spec, usesVocab, local_defaultVocabulary);
             // graph.add(global.store.rdf.createTriple(
             //     global.store.rdf.createNamedNode(context.base),
             //     global.store.rdf.createNamedNode(usesVocab),
@@ -432,8 +432,8 @@ function processElement($, ts, context, graph) {
 
         // seq 7
         if (local_typedResource != null) {
-            let values = context.getURI(ts, 'typeof');
-
+            // let values = context.getURI(ts, 'typeof');
+            let values = Context.tokenize(typeofAtt);
             if (values) {
                 for (let i = 0; i < values.length; i++) {
                     newTripple(store, graph, local_typedResource, typeURI, values[i]);
@@ -588,7 +588,7 @@ function processElement($, ts, context, graph) {
                         console.log('Warning: inlist not yet implemented..');
                     } else {
                         if (datatype == XMLLiteralURI || datatype == HTMLLiteralURI) {
-                            console.log("TODO - se11 - check");
+                            console.log("TODO - seq11 - check");
                             newTripple(store, graph, local_newSubject, predicate, ts.childNodes);
                             // graph.add(global.store.rdf.createTriple(
                             //     global.store.rdf.createNamedNode(local_newSubject),
