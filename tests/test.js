@@ -64,10 +64,11 @@ let logger = false;
 let totalTestCount = 170;
 let passedArr = [];
 let failedArr = [];
+let skippedArr = [];
 let testCount = 0;
 let testNumber = '';
 
-let testMaxToRun = [];
+let testMaxToRun = ['9999'];
 let testToRun = [];
 let testNotToRun = [];
 
@@ -75,13 +76,14 @@ let testNotToRun = [];
 // uncomment to deactivate
 
 // fill in the test numbers you want to run
-testToRun = ['0001'];
+//  testToRun = ['0099'];
 
 // run all tests, but not these from testNotToRun
-testNotToRun = ['0014', '0017', '0033', '0048', '0050'];
+// testNotToRun = ['0014', '0017', '0033', '0048', '0050'];
+// testNotToRun = ['0099'];
 
 // run all tests < testMaxToRun
-testMaxToRun = ['0049'];
+testMaxToRun = ['0090'];
 
 
 getFiles('.html', function (tests) {
@@ -159,29 +161,38 @@ getFiles('.html', function (tests) {
                             let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
 
                             let sparqlQueryOld = fs.readFileSync(sparqlFilename, 'utf-8');
-                            let sparqlQuery = analyse(sparqlQueryOld);
+                            let sparqlQuery = sparqlQueryOld; // analyse(sparqlQueryOld);
 
                             // console.log("Query: " + sparqlQuery);
 
                             // execute query
-                            store.execute(sparqlQuery, (err, passed) => {
-                                if (!err) {
-                                    if(logger) console.log('test passed: ' + passed);
+                            try {
+                                store.execute(sparqlQuery, (err, passed) => {
+                                    if (!err) {
+                                        if (logger) console.log('test passed: ' + passed);
 
-                                    if (passed)
-                                        passedArr.push(testNumber);
-                                    else
-                                        failedArr.push(testNumber);
+                                        if (passed)
+                                            passedArr.push(testNumber);
+                                        else
+                                            failedArr.push(testNumber);
 
-                                    // testCount++;
+                                        testCount++;
 
-                                } else {
-                                    console.log(err);
-                                    // throw err;
-                                }
+                                    } else {
+                                        console.log(err);
+                                        // throw err;
+                                    }
+                                    // printResult();
+                                });
+                            } catch(err) {
                                 testCount++;
-                                printResult();
-                            });
+                                failedArr.push(testNumber);
+                                console.error("Query-error:" + err);
+                            }
+
+                            // testCount++;
+                            printResult();
+
                             // console.log("closing strore from testnumber:" + testNumber);
                             store.clear();
                         }
@@ -194,6 +205,7 @@ getFiles('.html', function (tests) {
             // let p;
 
         } else {
+            skippedArr.push(getTestNumber(test));
             testCount++;
             printResult();
         }
@@ -204,13 +216,14 @@ getFiles('.html', function (tests) {
 function printResult() {
     "use strict";
     if(testCount == totalTestCount) {
-
         let done = passedArr.length + failedArr.length;
         let skipped = testCount - done;
 
         console.log("=====================================================================");
         console.log("Tryed " + done + " tests (passed: " + passedArr.length + " || failed:" + failedArr.length + ") skipped: " + skipped + " of total: " + testCount);
         if (failedArr.length > 0) console.log("\n>>> failed: " + failedArr);
+        if (skippedArr.length > 0) console.log("\n>>> skipped: " + skippedArr);
+        if(skipped != skippedArr.length) console.log("oha");
         console.log("=====================================================================");
     }
 }

@@ -72,7 +72,6 @@ const dummy_parseRDFa = function (source, store, base = null, callback) {
 
 function newTripple(store, graph, sub, prä, ob) {
     "use strict";
-
     if(typeof sub === 'string' &&
         typeof prä === 'string' &&
         typeof ob === 'string') {
