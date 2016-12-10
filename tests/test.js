@@ -5,15 +5,50 @@
 
 const fs = require('fs');
 const rdfStore = require('rdfstore');
-// const path = './cache/html5/';
-const path = './cache/own/';
-let ownTest = true;
+const rdfaParser = require('../routes/rdfa_parser.js');
 
 // var deasync = require('deasync');
 // var cp = require('child_process');
 // var exec = deasync(cp.exec);
 
-const rdfaParser = require('../routes/rdfa_parser.js');
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+// TODO: DO NOT EDIT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+let logger = false;
+
+let totalTestCount = 170;
+let passedArr = [];
+let failedArr = [];
+let skippedArr = [];
+let testCount = 0;
+let testNumber = '';
+
+let testMaxToRun = ['9999'];
+let testToRun = [];
+let testNotToRun = [];
+
+let path = './cache/html5/';
+let ownTest = false;
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+// TODO: unly edit here if you want to .........
+
+// TODO: fill in the test numbers you want to run
+// testToRun = ['0006'];
+
+// TODO: run all tests, but not these from testNotToRun
+// testNotToRun = ['0014', '0017', '0033', '0048', '0050'];
+// testNotToRun = ['0099'];
+
+// TODO: run all tests < testMaxToRun
+// testMaxToRun = ['0090'];
+
+// TODO: define special test directory and set ownTest = true
+path = './cache/own/';
+ownTest = true;
+
+// TODO: activate logger for tests
+logger = true;
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 function getTestNumber(test) {
     "use strict";
@@ -58,34 +93,6 @@ function getFiles(filter, callback) {
         totalTestCount = tests.length;
     });
 }
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-// do not uncommend
-let logger = true;
-
-let totalTestCount = 170;
-let passedArr = [];
-let failedArr = [];
-let skippedArr = [];
-let testCount = 0;
-let testNumber = '';
-
-let testMaxToRun = ['9999'];
-let testToRun = [];
-let testNotToRun = [];
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-// uncomment to deactivate
-
-// fill in the test numbers you want to run
- testToRun = ['0006'];
-
-// run all tests, but not these from testNotToRun
-// testNotToRun = ['0014', '0017', '0033', '0048', '0050'];
-// testNotToRun = ['0099'];
-
-// run all tests < testMaxToRun
-testMaxToRun = ['0090'];
 
 
 getFiles('.html', function (tests) {
@@ -162,7 +169,7 @@ getFiles('.html', function (tests) {
 
                             if(ownTest)
                                 return;
-                            
+
                             let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
 
                             let sparqlQueryOld = fs.readFileSync(sparqlFilename, 'utf-8');
@@ -187,18 +194,13 @@ getFiles('.html', function (tests) {
                                         console.log(err);
                                         // throw err;
                                     }
-                                    // printResult();
                                 });
                             } catch(err) {
                                 testCount++;
                                 failedArr.push(testNumber);
                                 console.error("Query-error:" + err);
                             }
-
-                            // testCount++;
                             printResult();
-
-                            // console.log("closing strore from testnumber:" + testNumber);
                             store.clear();
                         }
                     );
@@ -232,7 +234,3 @@ function printResult() {
         console.log("=====================================================================");
     }
 }
-
-// getFiles('html');
-// printResult();
-

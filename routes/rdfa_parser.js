@@ -38,7 +38,7 @@ const HTMLLiteralURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#HTML";
 const objectURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#object";
 
 global.store = null;
-const logger = true;
+const logger = false;
 
 const dummy_parseRDFa = function (source, store, base = null, callback) {
 
