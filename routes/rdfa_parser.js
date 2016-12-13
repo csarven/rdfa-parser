@@ -95,6 +95,7 @@ function newTripple(store, graph, sub, prä, ob) {
  * @param callback
  */
 const parseRDFa = function (source, store, base = null, callback) {
+// const parseRDFa = function (source, store, callback, base = null) {
 
     global.store = store;
 
@@ -117,6 +118,7 @@ const parseRDFa = function (source, store, base = null, callback) {
                 callback(global.store);
             }
         });
+
 
     });
 };

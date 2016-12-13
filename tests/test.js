@@ -1,6 +1,11 @@
 /**
  *
  * Created by roland on 11/26/16.
+ *
+ * TODO: somehow, store or graph is safed during more tests ... (clean every time)
+ * TODO: program is not stoping ...
+ *
+ *
  */
 
 const fs = require('fs');
@@ -29,7 +34,7 @@ let testNotToRun = [];
 let path = './cache/html5/';
 let ownTest = false;
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-// TODO: unly edit here if you want to .........
+// TODO: only edit here if you want to .........
 
 // TODO: fill in the test numbers you want to run
 // testToRun = ['0006'];
@@ -39,10 +44,10 @@ let ownTest = false;
 // testNotToRun = ['0099'];
 
 // TODO: run all tests < testMaxToRun
-// testMaxToRun = ['0090'];
+// testMaxToRun = ['0050'];
 
 // TODO: define special test directory and set ownTest = true
-path = './cache/own/';
+path = './own/';
 ownTest = true;
 
 // TODO: activate logger for tests
