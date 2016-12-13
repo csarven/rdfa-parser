@@ -1,18 +1,18 @@
-var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
+const express = require('express');
+const path = require('path');
+const favicon = require('serve-favicon');
+const logger = require('morgan');
+const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
 require('prototypes');
 
-var routes = require('./routes/index');
+const routes = require('./routes/index');
 
-var app = express();
+let app = express();
 
 // view engine setup
+app.set('view engine', 'pug');
 app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
 
 // static paths for jquery & bootstrap
 app.use('/jquery', express.static(__dirname + '/node_modules/jquery/dist/'));
@@ -30,7 +30,7 @@ app.use('/', routes);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
-  var err = new Error('Not Found');
+  let err = new Error('Not Found');
   err.status = 404;
   next(err);
 });
@@ -50,7 +50,7 @@ if (app.get('env') === 'development') {
 }
 
 // production error handler
-// no stacktraces leaked to user
+// no stack-traces leaked to user
 app.use(function(err, req, res) {
   res.status(err.status || 500);
   res.render('error', {

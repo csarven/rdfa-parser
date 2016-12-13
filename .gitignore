@@ -1,6 +1,7 @@
 .vagrant
 .vagrant-wks
 .vagrant-nbk
+cache/
 
 # Created by .ignore support plugin (hsz.mobi)
 ### Node template
