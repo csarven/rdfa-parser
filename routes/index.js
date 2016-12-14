@@ -19,37 +19,48 @@ router.post('/', function (req, res) {
     rdfStore.create(function (err, store) {
 
         rdfa_parser.parseRDFa(text, store, "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/", store => {
-            // if (DEBUG) console.log(output);
 
             store.execute("SELECT * { ?s ?p ?o }", function (success, results) {
 
-                let tripleCount = "created triples" + results.length.toString() + "\n";
-                let triple = "";
-                let triplesList = [];
-                let sub, prä, obj, sub_id;
+                // let tripleCount = "created triples" + results.length.toString() + "\n";
+                let triple;
+                let tmp = [];
+                let double;
+                let sub, prä, obj;
 
-                // while(results.length > 0) {
+                // for(let i = 0; i < results.length; i++) {
+                //     sub = results[i].s.value.toString();
+                //     prä = results[i].p.value.toString();
+                //     obj = results[i].o.value.toString();
+                //     triple = "<" + sub + "> <" + prä + "> <" + obj + ">\n";
+                //     triplesList.push(triple);
+                //     console.log(triple);
+                // }
 
-                for(let i = 0; i < results.length; i++) {
-                    sub = results[i].s.value.toString();
-                    prä = results[i].p.value.toString();
-                    obj = results[i].o.value.toString();
-                    triple = "<" + sub + "> <" + prä + "> <" + obj + ">\n";
-                    triplesList.push(triple);
+                // new structured output: TODO : just for presentation ...
+                while(results.length > 0) {
+                    sub = results[0].s.value.toString();
+                    tmp.push("<" + sub + ">\n");
+
+                    for(let j = 0; j < results.length; j++) {
+                        let subtmp = results[j].s.value.toString();
+                        if(subtmp === sub) {
+                            prä = results[j].p.value.toString();
+                            obj = results[j].o.value.toString();
+                            double = "\t<" + prä + "> <" + obj + ">\n";
+                            tmp.push(double);
+                            results.splice(j, 1);
+                            j--;
+                        }
+                    }
                 }
 
-                // triplesList = triplesList.sort()
-                
                 triple = "";
-
-                for(let i = 0; i < triplesList.length; i++) {
-                    triple += triplesList[i];
+                for(let i = 0; i < tmp.length; i++) {
+                    triple += tmp[i];
                 }
 
                 res.send(triple);
-                // console.log(tripleCount + triples);
-                console.log(triple);
-                
             });
         });
     });
