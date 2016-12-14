@@ -21,7 +21,7 @@
 
 'use strict';
 
-const jQuery = require('jQuery');
+const jQuery = require('jquery');
 const request = require('request');
 const cheerio = require('cheerio');
 const fs = require('fs');
@@ -29,6 +29,7 @@ const os = require('os');
 
 require('./classes.js');
 const rdfaCore = require('./rdfa_core.json');
+const crawler = require('./crawler.js');
 
 const PlainLiteralURI = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral';
 const typeURI = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
@@ -134,11 +135,14 @@ const getHTML = function (source, callback) {
     source = source.trim();
 
     if (source.startsWith('http')) {
+	/*
         request(source, function (error, response, html) {
             if (!error && response.statusCode == 200) {
                 callback(html);
             }
         });
+	*/
+	crawler(source, 2, callback);
 
     } else if (source.startsWith('file://')) {
         //noinspection JSUnresolvedFunction

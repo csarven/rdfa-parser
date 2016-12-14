@@ -81,6 +81,9 @@ function myCrawler(url, cDepth, cb){
 	crawler.addFetchCondition(function(queueItem, referrerQueueItem) {
     	return !queueItem.path.match(/\.php$/i);	
 	});
+	crawler.addFetchCondition(function(queueItem, referrerQueueItem) {
+    	return !queueItem.path.match(/\.ttl$/i);	
+	});
 	
 	// Funkt nicht: wenn Dateiendung .html fehlt (vgl. http://www.uibk.ac.at)
 	/*	
@@ -142,7 +145,7 @@ function myCrawler(url, cDepth, cb){
 				 * ...
 				 * 
 				 */
-				cb( title );	// In finaler Version: "responseBuffer" (current html to load with cheerio module (in RDFa_parser)) anstatt "title"
+				cb( responseBuffer );	// In finaler Version: "responseBuffer" (current html to load with cheerio module (in RDFa_parser)) anstatt "title"
 				//cb( responseBuffer );
 			}
 		}
