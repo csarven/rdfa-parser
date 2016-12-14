@@ -37,18 +37,18 @@ let ownTest = false;
 // TODO: only edit here if you want to .........
 
 // TODO: fill in the test numbers you want to run
-// testToRun = ['0006'];
+testToRun = ['0001'];
 
 // TODO: run all tests, but not these from testNotToRun
 // testNotToRun = ['0014', '0017', '0033', '0048', '0050'];
 // testNotToRun = ['0099'];
 
 // TODO: run all tests < testMaxToRun
-// testMaxToRun = ['0050'];
+testMaxToRun = ['0050'];
 
 // TODO: define special test directory and set ownTest = true
-path = './own/';
-ownTest = true;
+// path = './own/';
+// ownTest = true;
 
 // TODO: activate logger for tests
 logger = true;
@@ -90,12 +90,18 @@ function getFiles(filter, callback) {
     let tests = [];
 
     fs.readdir(path, (err, files) => {
-        files.forEach(file => {
-            if (file.indexOf(filter) >= 0)
-                tests.push(path + file);
-        });
-        callback(tests);
-        totalTestCount = tests.length;
+
+        if(err) {
+            console.error("Could not find files! Maybe you forgot to download the test-files?");
+            console.error(">>> run download-html5.sh");
+        } else {
+            files.forEach(file => {
+                if (file.indexOf(filter) >= 0)
+                    tests.push(path + file);
+            });
+            callback(tests);
+            totalTestCount = tests.length;
+        }
     });
 }
 
@@ -154,7 +160,7 @@ getFiles('.html', function (tests) {
                     rdfaParser.parseRDFa(
                         'file://' + test,
                         store,
-                        base = "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/",
+                        "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/",
                         store => {
                             // if (logger) console.log('##########################################\n' + 'running test ' + test);
 
@@ -180,7 +186,7 @@ getFiles('.html', function (tests) {
                             let sparqlQueryOld = fs.readFileSync(sparqlFilename, 'utf-8');
                             let sparqlQuery = sparqlQueryOld//analyse(sparqlQueryOld);
 
-                            // console.log("Query: " + sparqlQuery);
+                            if(logger) console.log("Query: " + sparqlQuery);
 
                             // execute query
                             try {

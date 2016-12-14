@@ -76,7 +76,9 @@ function newTripple(store, graph, sub, prä, ob) {
         typeof prä === 'string' &&
         typeof ob === 'string') {
 
-        let newNode = store.rdf.createTriple(
+        let newNode;
+
+        newNode = store.rdf.createTriple(
             store.rdf.createNamedNode(sub),
             store.rdf.createNamedNode(prä),
             store.rdf.createLiteral(ob));
@@ -148,8 +150,8 @@ const getHTML = function (source, callback) {
         })
 
     } else if (source.startsWith('<') && source.endsWith('>')) {
-        throw new Error('plain html not possible atm..');
-        // callback(source);
+        // throw new Error('plain html not possible atm..');
+        callback(source);
 
     } else {
         throw new Error('could not detect input format');
