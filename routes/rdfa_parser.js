@@ -21,7 +21,6 @@
 
 'use strict';
 
-const jQuery = require('jQuery');
 const request = require('request');
 const cheerio = require('cheerio');
 const fs = require('fs');
@@ -37,55 +36,31 @@ const XMLLiteralURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#XMLLiteral";
 const HTMLLiteralURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#HTML";
 const objectURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#object";
 
-global.store = null;
 const logger = false;
 
-const dummy_parseRDFa = function (source, store, base = null, callback) {
 
-    let graph = store.rdf.createGraph();
+/**
+ * adds a Triple to the Graph
+ * obj must be a object. use store.rdf.createNamedNode or store.rdf.createLiteral to get one
+ * @param store
+ * @param graph
+ * @param sub
+ * @param pre
+ * @param obj
+ */
+function addTriple(store, graph, sub, pre, obj) {
 
-
-    global.store = store;
-
-    graph.add(global.store.rdf.createTriple(
-        global.store.rdf.createNamedNode('http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/photo1.jpg'),
-        global.store.rdf.createNamedNode('http://purl.org/dc/elements/1.1/creator'),
-        global.store.rdf.createLiteral('Mark Birbeck'))
-    );
-    store.insert(graph, (err, inserted) => {
-        if (!err && inserted) {
-            callback(store);
-        }
-    });
-
-};
-
-// const newSubject = function(store, graph, subject) {
-//     store.node(subject, function(err, node) {
-//         if(!node)
-//
-//     })
-//         store.insert(graph, function(err) {console.log("thaaaa")});
-//     if()
-//
-// }
-
-function newTripple(store, graph, sub, prä, ob) {
-    "use strict";
-    if(typeof sub === 'string' &&
-        typeof prä === 'string' &&
-        typeof ob === 'string') {
+    if (typeof sub === 'string' &&
+        typeof pre === 'string' &&
+        typeof obj === 'object') {
 
         let newNode;
 
-        newNode = store.rdf.createTriple(
-            store.rdf.createNamedNode(sub),
-            store.rdf.createNamedNode(prä),
-            store.rdf.createLiteral(ob));
+        newNode = store.rdf.createTriple(store.rdf.createNamedNode(sub), store.rdf.createNamedNode(pre), obj);
 
         graph.add(newNode);
     } else {
-        throw "Could not add tripple";
+        console.log("could not create triple..")
     }
 }
 
@@ -99,25 +74,24 @@ function newTripple(store, graph, sub, prä, ob) {
 const parseRDFa = function (source, store, base = null, callback) {
 // const parseRDFa = function (source, store, callback, base = null) {
 
-    global.store = store;
 
     getHTML(source, function (html) {
 
         let $ = cheerio.load(html);
 
-        let graph = global.store.rdf.createGraph();
+        let graph = store.rdf.createGraph();
 
         $(':root').each(function () {
             let ts = $(this);
             let ctx = getInitialContext($, base);
 
-            processElement($, ts, ctx, graph);
+            processElement($, ts, ctx, graph, store);
 
         });
 
-        global.store.insert(graph, (err, inserted) => {
+        store.insert(graph, (err, inserted) => {
             if (!err && inserted) {
-                callback(global.store);
+                callback(store);
             }
         });
 
@@ -208,7 +182,8 @@ let add_local_iriMaps = function (l_iriMaps, prefixString) {
 
 };
 
-function processElement($, ts, context, graph) {
+function processElement($, ts, context, graph, store) {
+
     try {
 
         if (logger) {
@@ -282,12 +257,7 @@ function processElement($, ts, context, graph) {
         //seq 2
         if (vocabAtt) {
             local_defaultVocabulary = context.getURI(ts, 'vocab');
-            newTripple(store, graph, context.base.spec, usesVocab, local_defaultVocabulary);
-            // graph.add(global.store.rdf.createTriple(
-            //     global.store.rdf.createNamedNode(context.base),
-            //     global.store.rdf.createNamedNode(usesVocab),
-            //     global.store.rdf.createLiteral(local_defaultVocabulary))
-            // );
+            addTriple(graph, context.base.spec, usesVocab, local_defaultVocabulary);
         }
         else if (logger) {
             console.log("seq2 is skipped");
@@ -394,9 +364,9 @@ function processElement($, ts, context, graph) {
             }
             if (!local_newSubject) {
                 if (ts.is(':root')) {
-                    local_newSubject = context.parseTermOrCURIEOrAbsURI('');
-                } else if (context.parentObject != null) {
-                    local_newSubject = context.parentObject.base;
+                    local_newSubject = context.parseSafeCURIEOrCURIEOrURI(context.base);
+                } else if (context.parentObject) {
+                    local_newSubject = context.parentObject.baseURI;
                 }
             }
 
@@ -430,7 +400,7 @@ function processElement($, ts, context, graph) {
                     id = local_currentObjectResource;
                 }
                 console.log("TODO - setting new subject origin ...");
-                // var snode = global.store.rdf.create
+                // var snode = store.rdf.create
             }
         }
 
@@ -440,11 +410,7 @@ function processElement($, ts, context, graph) {
             let values = Context.tokenize(typeofAtt);
             if (values) {
                 for (let i = 0; i < values.length; i++) {
-                    newTripple(store, graph, local_typedResource, typeURI, values[i]);
-                    // graph.add(global.store.rdf.createTriple(
-                    //     global.store.rdf.createNamedNode(local_typedResource),
-                    //     global.store.rdf.createNamedNode(typeURI),
-                    //     global.store.rdf.createLiteral(values[i])));
+                    addTriple(store, graph, local_typedResource, typeURI, store.rdf.createNamedNode(values[i]));
                 }
             }
         }
@@ -474,22 +440,12 @@ function processElement($, ts, context, graph) {
                 }
             } else if (relAtt) {
                 for (let i = 0; i < relAttPredicates.length; i++) {
-                    newTripple(store, graph, local_newSubject, relAttPredicates[i], local_currentObjectResource);
-                    // graph.add(global.store.rdf.createTriple(
-                    //     global.store.rdf.createNamedNode(local_newSubject),
-                    //     global.store.rdf.createNamedNode(relAttPredicates[i]),
-                    //     global.store.rdf.createLiteral(local_currentObjectResource)
-                    // ));
+                    addTriple(store, graph, local_newSubject, relAttPredicates[i], store.rdf.createNamedNode(local_currentObjectResource));
                 }
             }
             if (revAtt) {
                 for (var i = 0; i < revAttPredicates.length; i++) {
-                    newTripple(store, graph, local_currentObjectResource, revAttPredicates[i], local_newSubject);
-                    graph.add(global.store.rdf.createTriple(
-                        global.store.rdf.createNamedNode(local_currentObjectResource),
-                        global.store.rdf.createNamedNode(revAttPredicates[i]),
-                        global.store.rdf.createLiteral(local_newSubject)
-                    ));
+                    addTriple(store, graph, local_currentObjectResource, revAttPredicates[i], store.rdf.createNamedNode(local_newSubject));
                 }
             }
 
@@ -541,9 +497,9 @@ function processElement($, ts, context, graph) {
                         datatype == XMLLiteralURI || datatype == HTMLLiteralURI
                             ? null
                             : (ts.is('[content]')
-                                ? ts.prop('content')
-                                : ts.textContent
-                        );
+                                    ? ts.prop('content')
+                                    : ts.textContent
+                            );
                 }
             } else if (contentAtt) {
                 datatype = PlainLiteralURI;
@@ -574,7 +530,7 @@ function processElement($, ts, context, graph) {
                     datatype = objectURI;
                     content = local_typedResource;
                 } else {
-                    content = ts.text();
+                    content = ts.text().trim();
                     console.log("TODO - seq11 - HTML-Mode");
                     if (!datatype) {
                         datatype = PlainLiteralURI;
@@ -593,19 +549,12 @@ function processElement($, ts, context, graph) {
                     } else {
                         if (datatype == XMLLiteralURI || datatype == HTMLLiteralURI) {
                             console.log("TODO - seq11 - check");
-                            newTripple(store, graph, local_newSubject, predicate, ts.childNodes);
-                            // graph.add(global.store.rdf.createTriple(
-                            //     global.store.rdf.createNamedNode(local_newSubject),
-                            //     global.store.rdf.createNamedNode(predicate),
-                            //     global.store.rdf.createLiteral(ts.childNodes, null, datatype) // TODO: lang?
-                            // ));
+                            addTriple(store, graph, local_newSubject, predicate, store.rdf.createLiteral(ts.childNodes, local_language, datatype));
                         } else {
-                            newTripple(store, graph, local_newSubject, predicate, content);
-                            // graph.add(global.store.rdf.createTriple(
-                            //     global.store.rdf.createNamedNode(local_newSubject),
-                            //     global.store.rdf.createNamedNode(predicate),
-                            //     global.store.rdf.createLiteral(content) //, local_language, datatype) // TODO: lang
-                            // ));
+                            if (datatype && datatype != PlainLiteralURI)
+                                addTriple(store, graph, local_newSubject, predicate, store.rdf.createLiteral(content, local_language, datatype));
+                            else
+                                addTriple(store, graph, local_newSubject, predicate, store.rdf.createLiteral(content));
                         }
                     }
                 }
@@ -623,17 +572,9 @@ function processElement($, ts, context, graph) {
                     // TODO: wtf?!?
                     // context.incompleteTriples.push(new incompleteTriples(local_newSubject, null, null, 'WTF'))
                 } else if (icT.direction == 'forward') {
-                    newTripple(store, graph, context.parentSubject, icT.predicate, local_newSubject);
-                    // graph.add(global.store.rdf.createTriple(
-                    //     global.store.rdf.createNamedNode(context.parentSubject),
-                    //     global.store.rdf.createNamedNode(icT.predicate),
-                    //     global.store.rdf.createLiteral(local_newSubject)));
+                    addTriple(store, graph, context.parentSubject, icT.predicate, store.rdf.createNamedNode(local_newSubject));
                 } else if (icT.direction == 'reverse') {
-                    newTripple(store, graph, local_newSubject, icT.predicate, context.parentSubject);
-                    // graph.add(global.rdf.createTriple(
-                    //     global.store.rdf.createNamedNode(local_newSubject),
-                    //     global.store.rdf.createNamedNode(icT.predicate),
-                    //     global.store.rdf.createLiteral(context.parentSubject)));
+                    addTriple(store, graph, local_newSubject, icT.predicate, store.rdf.createNamedNode(context.parentSubject));
                 }
             }
         }
@@ -670,8 +611,8 @@ function processElement($, ts, context, graph) {
                     (local_currentObjectResource != null)
                         ? local_currentObjectResource
                         : (local_newSubject != null)
-                        ? local_newSubject
-                        : context.parentSubject,
+                            ? local_newSubject
+                            : context.parentSubject,
                     local_incompleteTriples,
                     local_listMappings,
                     local_language, //TODO: current language -> https://www.w3.org/TR/rdfa-core/#T-current-language
@@ -687,7 +628,7 @@ function processElement($, ts, context, graph) {
             }
 
 
-            processElement($, ths, ctx, graph);
+            processElement($, ths, ctx, graph, store);
         });
     } catch (err) {
         console.error("ERROR: " + err);
@@ -723,4 +664,3 @@ Object.defineProperty(Object.prototype, 'getCI', {
 
 exports.getHTML = getHTML;
 exports.parseRDFa = parseRDFa;
-exports.dummy_parseRDFa = dummy_parseRDFa;

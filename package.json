@@ -20,8 +20,6 @@
     "rdf": "^3.0.1",
     "rdfstore": "^0.9.17",
     "request": "^2.78.0",
-    "serve-favicon": "~2.3.0",
-    "uri-js": "^2.1.1",
-    "xml-name-validator": "^2.0.1"
+    "serve-favicon": "~2.3.0"
   }
 }
