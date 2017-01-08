@@ -50,16 +50,8 @@ class Context {
                 termMappings,
                 defaultVocabulary) {
 
-        if (typeof base == 'string')
-            this.base = base;
-        else
-            this._base = base;
-
-        if (typeof parentSubject == 'string')
-            this.parentSubject = parentSubject;
-        else
-            this._parentSubject = base;
-
+        this._base = base;
+        this._parentSubject = parentSubject;
         this._parentObject = parentObject;
         this._incompleteTriples = incompleteTriples;
         this._listMappings = listMappings;
@@ -69,20 +61,12 @@ class Context {
         this._defaultVocabulary = defaultVocabulary;
     }
 
-    set base(value) {
-        this._base = this.parseURI(value);
-    }
-
     get base() {
         return this._base;
     }
 
     get defaultVocabulary() {
         return this._defaultVocabulary;
-    }
-
-    set parentSubject(value) {
-        this._parentSubject = this.parseURI(value);
     }
 
     get parentSubject() {
@@ -188,7 +172,7 @@ class Context {
 
                 for (let j = 0; j < check.length; j++) {
                     if (check[j].length > 0) {
-                        throw "Unecaped character " + check[j].charAt(0) + " (" + check[j].charCodeAt(0) + ") in URI " + parsed.spec;
+                        throw "Unescaped character " + check[j].charAt(0) + " (" + check[j].charCodeAt(0) + ") in URI " + parsed.spec;
                     }
                 }
             }
@@ -344,7 +328,7 @@ class Context {
     }
 
     resolveAndNormalize(href) {
-        let u = this.base.resolve(href);
+        let u = this.parseURI(this.base).resolve(href);
         let parsed = this.parseURI(u);
         parsed.normalize();
         return parsed.spec;
@@ -354,7 +338,7 @@ class Context {
         if (value == "") {
             return null;
         }
-        var predicate = this.parseTermOrCURIEOrAbsURI(value);
+        let predicate = this.parseTermOrCURIEOrAbsURI(value);
         if (predicate && predicate.indexOf("_:") == 0) {
             return null;
         }
@@ -426,7 +410,7 @@ class Context {
             // if (list.length == 1) {
             //     return list[0];
             // } else {
-                return list;
+            return list;
             // }
 
 
@@ -435,7 +419,7 @@ class Context {
                 return this.resolveAndNormalize(value);
 
             } else if (type_of[property] == "CURIEorURI") {
-                return this.parseCURIEOrURI(value);
+                return this.parseSafeCURIEOrCURIEOrURI(value);
 
             } else if (type_of[property] == "TERMorCURIEorAbsURI") {
                 return this.parseTermOrCURIEOrAbsURI(value)

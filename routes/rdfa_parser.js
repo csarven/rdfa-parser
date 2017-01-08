@@ -28,6 +28,7 @@ const os = require('os');
 
 require('./classes.js');
 const rdfaCore = require('./rdfa_core.json');
+const crawler = require('./crawler.js');
 
 const PlainLiteralURI = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral';
 const typeURI = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
@@ -50,9 +51,7 @@ const logger = false;
  */
 function addTriple(store, graph, sub, pre, obj) {
 
-    if (typeof sub === 'string' &&
-        typeof pre === 'string' &&
-        typeof obj === 'object') {
+    if (typeof obj === 'object') {
 
         let newNode;
 
@@ -110,11 +109,14 @@ const getHTML = function (source, callback) {
     source = source.trim();
 
     if (source.startsWith('http')) {
-        request(source, function (error, response, html) {
-            if (!error && response.statusCode == 200) {
-                callback(html);
-            }
-        });
+        /*
+         request(source, function (error, response, html) {
+         if (!error && response.statusCode == 200) {
+         callback(html);
+         }
+         });
+         */
+        crawler(source, 2, callback);
 
     } else if (source.startsWith('file://')) {
         //noinspection JSUnresolvedFunction
@@ -338,6 +340,7 @@ function processElement($, ts, context, graph, store) {
                         local_newSubject = store.rdf.createBlankNode();
                     } else if (context.parentObject) {
                         local_newSubject = context.parentObject;
+
                         if (!propertyAtt) { // TODO: seq says, ts.not()
                             local_skip = true;
                         }
@@ -366,7 +369,7 @@ function processElement($, ts, context, graph, store) {
                 if (ts.is(':root')) {
                     local_newSubject = context.parseSafeCURIEOrCURIEOrURI(context.base);
                 } else if (context.parentObject) {
-                    local_newSubject = context.parentObject.baseURI;
+                    local_newSubject = context.parentObject;
                 }
             }
 
@@ -444,7 +447,7 @@ function processElement($, ts, context, graph, store) {
                 }
             }
             if (revAtt) {
-                for (var i = 0; i < revAttPredicates.length; i++) {
+                for (let i = 0; i < revAttPredicates.length; i++) {
                     addTriple(store, graph, local_currentObjectResource, revAttPredicates[i], store.rdf.createNamedNode(local_newSubject));
                 }
             }
@@ -607,10 +610,10 @@ function processElement($, ts, context, graph, store) {
             } else {
                 ctx = new Context(
                     context._base,
-                    (local_newSubject != null) ? local_newSubject : context.parentSubject,
-                    (local_currentObjectResource != null)
+                    local_newSubject ? local_newSubject : context.parentSubject,
+                    local_currentObjectResource
                         ? local_currentObjectResource
-                        : (local_newSubject != null)
+                        : local_newSubject
                             ? local_newSubject
                             : context.parentSubject,
                     local_incompleteTriples,
