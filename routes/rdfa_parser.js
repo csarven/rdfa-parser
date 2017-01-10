@@ -501,7 +501,7 @@ function processElement($, ts, context, graph, store) {
                             ? null
                             : (ts.is('[content]')
                                     ? ts.prop('content')
-                                    : ts.textContent
+                                    : ts.text().trim()
                             );
                 }
             } else if (contentAtt) {

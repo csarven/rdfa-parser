@@ -43,7 +43,7 @@ let ownTest = false;
 // testNotToRun = ['0099'];
 
 // run all tests < testMaxToRun
-testMaxToRun = ['0029'];
+testMaxToRun = ['0050'];
 
 // define special test directory and set ownTest = true
 // path = './own/';
@@ -107,9 +107,8 @@ getFiles('.html', function (tests) {
 
                                 for (let i = 0; i < results.length; i++) {
                                     if (results[i].o.token == "literal") {
-                                        console.log("\t<" + results[i].s.value + "> <" + results[i].p.value + "> \"" + results[i].o.value + "\" .");
+                                        console.log("\t<" + results[i].s.value + "> <" + results[i].p.value + "> \"" + results[i].o.value + '"' + (results[i].o.type == '' ? '' : '^^<' + results[i].o.type + '>') + ' .');
                                     } else {
-
                                         console.log("\t<" + results[i].s.value + "> <" + results[i].p.value + "> <" + results[i].o.value + "> .");
                                     }
                                 }
