@@ -42,7 +42,6 @@ const logger = false;
 
 /**
  * adds a Triple to the Graph
- * obj must be a object. use store.rdf.createNamedNode or store.rdf.createLiteral to get one
  * @param store
  * @param graph
  * @param sub
@@ -51,15 +50,24 @@ const logger = false;
  */
 function addTriple(store, graph, sub, pre, obj) {
 
-    if (typeof obj === 'object') {
+    if (obj instanceof RDFModel.Literal || RDFModel.buildNamedNode) {
 
         let newNode;
 
-        newNode = store.rdf.createTriple(store.rdf.createNamedNode(sub), store.rdf.createNamedNode(pre), obj);
+        if (!(sub instanceof RDFModel.BlankNode))
+            sub = store.rdf.createNamedNode(sub);
+
+        pre = store.rdf.createNamedNode(pre);
+
+        if (!(obj instanceof RDFModel.BlankNode || obj instanceof RDFModel.Literal))
+            obj = store.rdf.createNamedNode(obj);
+
+        newNode = store.rdf.createTriple(sub, pre, obj);
 
         graph.add(newNode);
+
     } else {
-        console.log("could not create triple..")
+        console.log("could not create triple.");
     }
 }
 
@@ -91,6 +99,8 @@ const parseRDFa = function (source, store, base = null, callback) {
         store.insert(graph, (err, inserted) => {
             if (!err && inserted) {
                 callback(store);
+            } else {
+                console.log('ERROR inserting graph: ' + err);
             }
         });
 
@@ -186,456 +196,456 @@ let add_local_iriMaps = function (l_iriMaps, prefixString) {
 
 function processElement($, ts, context, graph, store) {
 
-    try {
+    // try {
 
-        if (logger) {
-            console.log("\n**********************************************************************************");
-            console.log(" /--------------------\\");
-            console.log("|  Processing element  |");
-            console.log(" \\--------------------/\n");
-            console.log(ts + "");
-            console.log("\n**********************************************************************************");
-        }
+    if (logger) {
+        console.log("\n**********************************************************************************");
+        console.log(" /--------------------\\");
+        console.log("|  Processing element  |");
+        console.log(" \\--------------------/\n");
+        console.log(ts + "");
+        console.log("\n**********************************************************************************");
+    }
 
-        let vocabAtt = ts.prop('vocab');
-        let prefixAtt = ts.prop('prefix');
-        let relAtt = ts.prop('rel');
-        let revAtt = ts.prop('rev');
-        let typeofAtt = ts.prop('typeof');
-        let propertyAtt = ts.prop('property');
-        let datatypeAtt = ts.prop('datatype');
-        // let datetimeAtt = this.inHTMLMode ? ts.prop('datetime') : null;
-        let datetimeAtt = ts.prop('datetime');
-        let contentAtt = ts.prop('content');
-        let aboutAtt = ts.prop('about');
-        let srcAtt = ts.prop('src');
-        let resourceAtt = ts.prop('resource');
-        let hrefAtt = ts.prop('href');
-        let inlistAtt = ts.prop('inlist');
+    let vocabAtt = ts.prop('vocab');
+    let prefixAtt = ts.prop('prefix');
+    let relAtt = ts.prop('rel');
+    let revAtt = ts.prop('rev');
+    let typeofAtt = ts.prop('typeof');
+    let propertyAtt = ts.prop('property');
+    let datatypeAtt = ts.prop('datatype');
+    // let datetimeAtt = this.inHTMLMode ? ts.prop('datetime') : null;
+    let datetimeAtt = ts.prop('datetime');
+    let contentAtt = ts.prop('content');
+    let aboutAtt = ts.prop('about');
+    let srcAtt = ts.prop('src');
+    let resourceAtt = ts.prop('resource');
+    let hrefAtt = ts.prop('href');
+    let inlistAtt = ts.prop('inlist');
 
-        let inHTMLMode = true;
+    let inHTMLMode = true;
 
 
-        // reference: https://www.w3.org/TR/rdfa-core/#s_sequence
-        //seq 1
-        let local_skip = false;
-        let local_newSubject = null;
-        let local_currentObjectResource = null;
-        let local_currentPropertyValue = null;
-        let local_typedResource = null;
-        let local_iriMappings = context.iriMappings;
-        let local_incompleteTriples = [];
-        let local_listMappings = context.listMappings;
-        let local_listMappingDifferent = context.parentSubject ? false : true;
-        let local_termMappings = context.termMappings;
-        let local_defaultVocabulary = context.defaultVocabulary;
+    // reference: https://www.w3.org/TR/rdfa-core/#s_sequence
+    //seq 1
+    let local_skip = false;
+    let local_newSubject = null;
+    let local_currentObjectResource = null;
+    let local_currentPropertyValue = null;
+    let local_typedResource = null;
+    let local_iriMappings = context.iriMappings;
+    let local_incompleteTriples = [];
+    let local_listMappings = context.listMappings;
+    let local_listMappingDifferent = context.parentSubject ? false : true;
+    let local_termMappings = context.termMappings;
+    let local_defaultVocabulary = context.defaultVocabulary;
 
-        // let local_prefixes = context.prefixes;
+    // let local_prefixes = context.prefixes;
 
-        let relAttPredicates = [];
-        if (relAtt) {
-            let values = Context.tokenize(ts.prop('rel'));
-            for (let i = 0; i < values.length; i++) {
-                // let predicate = context.parsePredicate(values[i], local_defaultVocabulary, context.terms, local_prefixes, base, this.inHTMLMode && propertyAtt != null);
-                let predicate = context.parsePredicate(values[i]);
-                if (predicate) {
-                    relAttPredicates.push(predicate);
-                }
+    let relAttPredicates = [];
+    if (relAtt) {
+        let values = Context.tokenize(ts.prop('rel'));
+        for (let i = 0; i < values.length; i++) {
+            // let predicate = context.parsePredicate(values[i], local_defaultVocabulary, context.terms, local_prefixes, base, this.inHTMLMode && propertyAtt != null);
+            let predicate = context.parsePredicate(values[i]);
+            if (predicate) {
+                relAttPredicates.push(predicate);
             }
         }
-        let revAttPredicates = [];
-        if (revAtt) {
-            let values = Context.tokenize(ts.prop('rev'));
-            for (let i = 0; i < values.length; i++) {
-                // let predicate = context.parsePredicate(values[i], vocabulary, context.terms, prefixes, base, this.inHTMLMode && propertyAtt != null);
-                let predicate = context.parsePredicate(values[i]);
-                if (predicate) {
-                    revAttPredicates.push(predicate);
-                }
+    }
+    let revAttPredicates = [];
+    if (revAtt) {
+        let values = Context.tokenize(ts.prop('rev'));
+        for (let i = 0; i < values.length; i++) {
+            // let predicate = context.parsePredicate(values[i], vocabulary, context.terms, prefixes, base, this.inHTMLMode && propertyAtt != null);
+            let predicate = context.parsePredicate(values[i]);
+            if (predicate) {
+                revAttPredicates.push(predicate);
             }
         }
+    }
 
 
-        //seq 2
-        if (vocabAtt) {
-            local_defaultVocabulary = context.getURI(ts, 'vocab');
-            addTriple(graph, context.base.spec, usesVocab, local_defaultVocabulary);
-        }
-        else if (logger) {
-            console.log("seq2 is skipped");
-        }
-        // TODO: else statement
+    //seq 2
+    if (vocabAtt) {
+        local_defaultVocabulary = context.getURI(ts, 'vocab');
+        addTriple(graph, context.base.spec, usesVocab, local_defaultVocabulary);
+    }
+    else if (logger) {
+        console.log("seq2 is skipped");
+    }
+    // TODO: else statement
 
-        // seq 3
-        if (prefixAtt) {
-            add_local_iriMaps(local_iriMappings, prefixAtt);
-        }
-        else if (logger) {
-            console.log("seq3 is skipped");
-        }
+    // seq 3
+    if (prefixAtt) {
+        add_local_iriMaps(local_iriMappings, prefixAtt);
+    }
+    else if (logger) {
+        console.log("seq3 is skipped");
+    }
 
-        // seq 4
-        let local_language = $('[xml\\:lang]').prop('xml:lang');
-        if (local_language == undefined)
-            local_language = $('lang').prop('href');
-        if (local_language == undefined)
-            local_language = context.language;
+    // seq 4
+    let local_language = $('[xml\\:lang]').prop('xml:lang');
+    if (local_language == undefined)
+        local_language = $('lang').prop('href');
+    if (local_language == undefined)
+        local_language = context.language;
 
-        // seq 5
-        // console.log("rel = " + rel + "/ rev = " + rev);
+    // seq 5
+    // console.log("rel = " + rel + "/ rev = " + rev);
 
-        if (!relAtt && !revAtt) {
-            // seq 5.1
-            if (propertyAtt && !contentAtt && !datatypeAtt) {
-
-                if (logger) {
-                    console.log("seq5.1 is processing ...");
-                }
-
-                if (aboutAtt) {
-                    local_newSubject = context.getURI(ts, 'about');
-                } else if (ts.is(':root')) {
-                    local_newSubject = context.parseTermOrCURIEOrAbsURI('');
-                } else if (context.parentObject != null) {
-                    local_newSubject = context.parentObject;
-                }
-
-                if (typeofAtt) {
-                    if (local_newSubject != null || ts.is(':root')) {
-                        local_typedResource = local_newSubject;
-                    } else {
-                        if (resourceAtt) {
-                            local_typedResource = context.getURI(ts, 'resource');
-                        } else if (hrefAtt) {
-                            local_typedResource = context.getURI(ts, 'href');
-                        } else if (srcAtt) {
-                            local_typedResource = context.getURI(ts, 'src');
-                        } else {
-                            local_typedResource = store.rdf.createBlankNode();
-                        }
-                        local_currentObjectResource = local_typedResource;
-                    }
-
-                }
-
-                // seq 5.2
-            } else {
-
-                if (logger) {
-                    console.log("seq5.2 is processing ...");
-                }
-
-                if (aboutAtt) {
-                    local_newSubject = context.getURI(ts, 'about');
-                } else if (resourceAtt) {
-                    local_newSubject = context.getURI(ts, 'resource');
-                } else if (hrefAtt) {
-                    local_newSubject = context.getURI(ts, 'href');
-                } else if (srcAtt) {
-                    local_newSubject = context.getURI(ts, 'src');
-                } else {
-                    if (ts.is(':root')) {
-                        local_newSubject = context.parseTermOrCURIEOrAbsURI('');
-                    } else if (typeofAtt) {
-                        local_newSubject = store.rdf.createBlankNode();
-                    } else if (context.parentObject) {
-                        local_newSubject = context.parentObject;
-
-                        if (!propertyAtt) { // TODO: seq says, ts.not()
-                            local_skip = true;
-                        }
-                    }
-                }
-
-                if (typeofAtt) {
-                    local_typedResource = local_newSubject;
-                }
-            }
-
-            // seq 6
-        } else {
+    if (!relAtt && !revAtt) {
+        // seq 5.1
+        if (propertyAtt && !contentAtt && !datatypeAtt) {
 
             if (logger) {
-                console.log("seq6 is processing ...");
+                console.log("seq5.1 is processing ...");
             }
 
             if (aboutAtt) {
                 local_newSubject = context.getURI(ts, 'about');
+            } else if (ts.is(':root')) {
+                local_newSubject = context.parseTermOrCURIEOrAbsURI('');
+            } else if (context.parentObject != null) {
+                local_newSubject = context.parentObject;
             }
+
+            if (typeofAtt) {
+                if (local_newSubject != null || ts.is(':root')) {
+                    local_typedResource = local_newSubject;
+                } else {
+                    if (resourceAtt) {
+                        local_typedResource = context.getURI(ts, 'resource');
+                    } else if (hrefAtt) {
+                        local_typedResource = context.getURI(ts, 'href');
+                    } else if (srcAtt) {
+                        local_typedResource = context.getURI(ts, 'src');
+                    } else {
+                        local_typedResource = store.rdf.createBlankNode();
+                    }
+                    local_currentObjectResource = local_typedResource;
+                }
+
+            }
+
+            // seq 5.2
+        } else {
+
+            if (logger) {
+                console.log("seq5.2 is processing ...");
+            }
+
+            if (aboutAtt) {
+                local_newSubject = context.getURI(ts, 'about');
+            } else if (resourceAtt) {
+                local_newSubject = context.getURI(ts, 'resource');
+            } else if (hrefAtt) {
+                local_newSubject = context.getURI(ts, 'href');
+            } else if (srcAtt) {
+                local_newSubject = context.getURI(ts, 'src');
+            } else {
+                if (ts.is(':root')) {
+                    local_newSubject = context.parseTermOrCURIEOrAbsURI('');
+                } else if (typeofAtt) {
+                    local_newSubject = store.rdf.createBlankNode();
+                } else if (context.parentObject) {
+                    local_newSubject = context.parentObject;
+
+                    if (!propertyAtt) { // TODO: seq says, ts.not()
+                        local_skip = true;
+                    }
+                }
+            }
+
             if (typeofAtt) {
                 local_typedResource = local_newSubject;
             }
-            if (!local_newSubject) {
-                if (ts.is(':root')) {
-                    local_newSubject = context.parseSafeCURIEOrCURIEOrURI(context.base);
-                } else if (context.parentObject) {
-                    local_newSubject = context.parentObject;
-                }
-            }
-
-            if (resourceAtt) {
-                local_currentObjectResource = context.getURI(ts, 'resource');
-            }
-
-            if (!local_currentObjectResource) {
-                if (hrefAtt) {
-                    local_currentObjectResource = context.getURI(ts, 'href');
-                } else if (srcAtt) {
-                    local_currentObjectResource = context.getURI(ts, 'src');
-                } else if (typeofAtt && !aboutAtt && !(inHTMLMode && (ts.is('head') || ts.is('body')))) {
-                    local_currentObjectResource = store.rdf.createBlankNode();
-                    // local_typedResource = local_currentObjectResource;
-                }
-            }
-
-            if (typeofAtt && !aboutAtt && inHTMLMode && (ts.is('head') || ts.is('body'))) {
-                local_typedResource = local_newSubject;
-            } else if (typeofAtt && !aboutAtt) {
-                local_typedResource = local_currentObjectResource;
-            }
-
         }
 
-        if (local_newSubject) {
-            if (aboutAtt || resourceAtt || local_typedResource) {
-                let id = local_newSubject;
-                if (typeofAtt && !aboutAtt && !resourceAtt && local_currentObjectResource) {
-                    id = local_currentObjectResource;
-                }
-                console.log("TODO - setting new subject origin ...");
-                // var snode = store.rdf.create
+        // seq 6
+    } else {
+
+        if (logger) {
+            console.log("seq6 is processing ...");
+        }
+
+        if (aboutAtt) {
+            local_newSubject = context.getURI(ts, 'about');
+        }
+        if (typeofAtt) {
+            local_typedResource = local_newSubject;
+        }
+        if (!local_newSubject) {
+            if (ts.is(':root')) {
+                local_newSubject = context.parseSafeCURIEOrCURIEOrURI(context.base);
+            } else if (context.parentObject) {
+                local_newSubject = context.parentObject;
             }
         }
 
-        // seq 7
-        if (local_typedResource != null) {
-            // let values = context.getURI(ts, 'typeof');
-            let values = Context.tokenize(typeofAtt);
-            if (values) {
-                for (let i = 0; i < values.length; i++) {
-                    addTriple(store, graph, local_typedResource, typeURI, store.rdf.createNamedNode(values[i]));
-                }
-            }
-        }
-        else if (logger) {
-            console.log("seq7 is skipped");
+        if (resourceAtt) {
+            local_currentObjectResource = context.getURI(ts, 'resource');
         }
 
-        // seq 8
-        if (local_newSubject && local_newSubject != context.parentObject) {
-            local_listMappings = [];
-            local_listMappingDifferent = true;
+        if (!local_currentObjectResource) {
+            if (hrefAtt) {
+                local_currentObjectResource = context.getURI(ts, 'href');
+            } else if (srcAtt) {
+                local_currentObjectResource = context.getURI(ts, 'src');
+            } else if (typeofAtt && !aboutAtt && !(inHTMLMode && (ts.is('head') || ts.is('body')))) {
+                local_currentObjectResource = store.rdf.createBlankNode();
+                // local_typedResource = local_currentObjectResource;
+            }
         }
-        else if (logger) {
-            console.log("seq8 is skipped");
+
+        if (typeofAtt && !aboutAtt && inHTMLMode && (ts.is('head') || ts.is('body'))) {
+            local_typedResource = local_newSubject;
+        } else if (typeofAtt && !aboutAtt) {
+            local_typedResource = local_currentObjectResource;
         }
+
+    }
+
+    if (local_newSubject) {
+        if (aboutAtt || resourceAtt || local_typedResource) {
+            let id = local_newSubject;
+            if (typeofAtt && !aboutAtt && !resourceAtt && local_currentObjectResource) {
+                id = local_currentObjectResource;
+            }
+            console.log("TODO - setting new subject origin ...");
+            // var snode = store.rdf.create
+        }
+    }
+
+    // seq 7
+    if (local_typedResource != null) {
+        // let values = context.getURI(ts, 'typeof');
+        let values = Context.tokenize(typeofAtt);
+        if (values) {
+            for (let i = 0; i < values.length; i++) {
+                addTriple(store, graph, local_typedResource, typeURI, values[i]);
+            }
+        }
+    }
+    else if (logger) {
+        console.log("seq7 is skipped");
+    }
+
+    // seq 8
+    if (local_newSubject && local_newSubject != context.parentObject) {
+        local_listMappings = [];
+        local_listMappingDifferent = true;
+    }
+    else if (logger) {
+        console.log("seq8 is skipped");
+    }
 
 // seq 9 TODO
-        if (local_currentObjectResource) {
-            if (relAtt && inlistAtt) {
-                for (let i = 0; i < relAttPredicates.length; i++) {
-                    let list = local_listMappings[relAttPredicates[i]];
-                    if (!list) {
-                        list = [];
-                        local_listMappings[relAttPredicates[i]] = list;
-                    }
-                    list.push({type: objectURI, value: local_currentObjectResource});
+    if (local_currentObjectResource) {
+        if (relAtt && inlistAtt) {
+            for (let i = 0; i < relAttPredicates.length; i++) {
+                let list = local_listMappings[relAttPredicates[i]];
+                if (!list) {
+                    list = [];
+                    local_listMappings[relAttPredicates[i]] = list;
                 }
-            } else if (relAtt) {
-                for (let i = 0; i < relAttPredicates.length; i++) {
-                    addTriple(store, graph, local_newSubject, relAttPredicates[i], store.rdf.createNamedNode(local_currentObjectResource));
-                }
+                list.push({type: objectURI, value: local_currentObjectResource});
             }
-            if (revAtt) {
-                for (let i = 0; i < revAttPredicates.length; i++) {
-                    addTriple(store, graph, local_currentObjectResource, revAttPredicates[i], store.rdf.createNamedNode(local_newSubject));
-                }
+        } else if (relAtt) {
+            for (let i = 0; i < relAttPredicates.length; i++) {
+                addTriple(store, graph, local_newSubject, relAttPredicates[i], local_currentObjectResource);
             }
+        }
+        if (revAtt) {
+            for (let i = 0; i < revAttPredicates.length; i++) {
+                addTriple(store, graph, local_currentObjectResource, revAttPredicates[i], local_newSubject);
+            }
+        }
 
 
 // seq 10
-        } else {
-            if (local_newSubject && !local_currentObjectResource && (relAtt || revAtt)) {
-                local_currentObjectResource = store.rdf.createBlankNode();
-                //alert(current.tagName+": generated blank node, newSubject="+newSubject+" currentObjectResource="+currentObjectResource);
-            }
+    } else {
+        if (local_newSubject && !local_currentObjectResource && (relAtt || revAtt)) {
+            local_currentObjectResource = store.rdf.createBlankNode();
+            //alert(current.tagName+": generated blank node, newSubject="+newSubject+" currentObjectResource="+currentObjectResource);
+        }
 
-            if (relAtt && inlistAtt) {
-                console.log('Warning: inlist not yet implemented..');
+        if (relAtt && inlistAtt) {
+            console.log('Warning: inlist not yet implemented..');
 
-            } else if (relAtt) {
-                let relAtt = context.getURI(ts, 'rel');
-                for (let i = 0; i < relAtt.length; i++) {
-                    // incomplete.push({predicate: relAttPredicates[i], forward: true});
-                    local_incompleteTriples.push(new incompleteTriples(null, relAtt[i], null, 'forward'))
-                }
-
-            }
-
-            if (revAtt) {
-                let revAtt = context.getURI(ts, 'rev');
-                for (let i = 0; i < revAtt.length; i++) {
-                    // incomplete.push({predicate: relAttPredicates[i], forward: true});
-                    local_incompleteTriples.push(new incompleteTriples(null, revAtt[i], null, 'reverse'))
-                }
+        } else if (relAtt) {
+            let relAtt = context.getURI(ts, 'rel');
+            for (let i = 0; i < relAtt.length; i++) {
+                // incomplete.push({predicate: relAttPredicates[i], forward: true});
+                local_incompleteTriples.push(new incompleteTriples(null, relAtt[i], null, 'forward'))
             }
 
         }
+
+        if (revAtt) {
+            let revAtt = context.getURI(ts, 'rev');
+            for (let i = 0; i < revAtt.length; i++) {
+                // incomplete.push({predicate: relAttPredicates[i], forward: true});
+                local_incompleteTriples.push(new incompleteTriples(null, revAtt[i], null, 'reverse'))
+            }
+        }
+
+    }
 
 
 // seq 11
-        if (propertyAtt) {
+    if (propertyAtt) {
 
-            let datatype = null;
-            let content = null;
+        let datatype = null;
+        let content = null;
 
-            if (datatypeAtt) {
-                datatype = datatypeAtt == '' ? PlainLiteralURI : context.getURI(ts, 'datatype');
+        if (datatypeAtt) {
+            datatype = datatypeAtt == '' ? PlainLiteralURI : context.getURI(ts, 'datatype');
 
-                // TODO green-turtle does some datetime stuff here..??
-                if (datetimeAtt && !contentAtt) {
-                    content = ts.prop('datetime');
-                } else {
-                    content =
-                        datatype == XMLLiteralURI || datatype == HTMLLiteralURI
-                            ? null
-                            : (ts.is('[content]')
-                                    ? ts.prop('content')
-                                    : ts.text().trim()
-                            );
-                }
-            } else if (contentAtt) {
+            // TODO green-turtle does some datetime stuff here..??
+            if (datetimeAtt && !contentAtt) {
+                content = ts.prop('datetime');
+            } else {
+                content =
+                    datatype == XMLLiteralURI || datatype == HTMLLiteralURI
+                        ? null
+                        : (ts.is('[content]')
+                                ? ts.prop('content')
+                                : ts.text().trim()
+                        );
+            }
+        } else if (contentAtt) {
+            datatype = PlainLiteralURI;
+            content = ts.prop('content')
+        } else if (datetimeAtt) { // TODO
+            console.log("TODO - seq11 - datetime");
+            content = context.getURI(ts, 'datetime');
+            // datatype = deriveDateTimeType(content);
+            if (!datatype) {
                 datatype = PlainLiteralURI;
-                content = ts.prop('content')
-            } else if (datetimeAtt) { // TODO
-                console.log("TODO - seq11 - datetime");
-                content = context.getURI(ts, 'datetime');
-                // datatype = deriveDateTimeType(content);
+            }
+        } else if (!relAtt && !revAtt) {
+            if (resourceAtt) {
+                content = context.getURI(ts, 'resource');
+            }
+            if (!contentAtt && hrefAtt) {
+                content = context.getURI(ts, 'href');
+            } else if (!contentAtt && srcAtt) {
+                content = context.getURI(ts, 'src');
+            }
+            if (content) {
+                datatype = objectURI;
+            }
+
+        }
+        if (!datatype) {
+            if (typeofAtt && !aboutAtt) {
+                datatype = objectURI;
+                content = local_typedResource;
+            } else {
+                content = ts.text().trim();
+                console.log("TODO - seq11 - HTML-Mode");
                 if (!datatype) {
                     datatype = PlainLiteralURI;
                 }
-            } else if (!relAtt && !revAtt) {
-                if (resourceAtt) {
-                    content = context.getURI(ts, 'resource');
-                }
-                if (!contentAtt && hrefAtt) {
-                    content = context.getURI(ts, 'href');
-                } else if (!contentAtt && srcAtt) {
-                    content = context.getURI(ts, 'src');
-                }
-                if (content) {
-                    datatype = objectURI;
-                }
-
-            }
-            if (!datatype) {
-                if (typeofAtt && !aboutAtt) {
-                    datatype = objectURI;
-                    content = local_typedResource;
-                } else {
-                    content = ts.text().trim();
-                    console.log("TODO - seq11 - HTML-Mode");
-                    if (!datatype) {
-                        datatype = PlainLiteralURI;
-                    }
-                }
-            }
-            let values = context.getURI(ts, 'property');
-
-            for (let i = 0; i < values.length; i++) {
-                let predicate = context.parsePredicate(ts.prop('property'));
-
-                if (predicate) {
-                    if (inlistAtt) {
-                        // TODO: inlist
-                        console.log('Warning: inlist not yet implemented..');
-                    } else {
-                        if (datatype == XMLLiteralURI || datatype == HTMLLiteralURI) {
-                            console.log("TODO - seq11 - check");
-                            addTriple(store, graph, local_newSubject, predicate, store.rdf.createLiteral(ts.childNodes, local_language, datatype));
-                        } else {
-                            if (datatype && datatype != PlainLiteralURI)
-                                addTriple(store, graph, local_newSubject, predicate, store.rdf.createLiteral(content, local_language, datatype));
-                            else
-                                addTriple(store, graph, local_newSubject, predicate, store.rdf.createLiteral(content));
-                        }
-                    }
-                }
-
             }
         }
+        let values = context.getURI(ts, 'property');
+
+        for (let i = 0; i < values.length; i++) {
+            let predicate = context.parsePredicate(ts.prop('property'));
+
+            if (predicate) {
+                if (inlistAtt) {
+                    // TODO: inlist
+                    console.log('Warning: inlist not yet implemented..');
+                } else {
+                    if (datatype == XMLLiteralURI || datatype == HTMLLiteralURI) {
+                        console.log("TODO - seq11 - check");
+                        addTriple(store, graph, local_newSubject, predicate, store.rdf.createLiteral(ts.childNodes, local_language, datatype));
+                    } else {
+                        if (datatype && datatype != PlainLiteralURI)
+                            addTriple(store, graph, local_newSubject, predicate, store.rdf.createLiteral(content, local_language, datatype));
+                        else
+                            addTriple(store, graph, local_newSubject, predicate, store.rdf.createLiteral(content));
+                    }
+                }
+            }
+
+        }
+    }
 
 // seq 12
 //     if (!local_skip && local_newSubject != null) {
-        if (!local_skip && local_newSubject) {
-            for (let i = 0; i < context.incompleteTriples; i++) {
-                let icT = context.incompleteTriples[i];
-                if (icT.direction() == 'none') {
-                    console.log("TODO - seq12 - direction = none");
-                    // TODO: wtf?!?
-                    // context.incompleteTriples.push(new incompleteTriples(local_newSubject, null, null, 'WTF'))
-                } else if (icT.direction == 'forward') {
-                    addTriple(store, graph, context.parentSubject, icT.predicate, store.rdf.createNamedNode(local_newSubject));
-                } else if (icT.direction == 'reverse') {
-                    addTriple(store, graph, local_newSubject, icT.predicate, store.rdf.createNamedNode(context.parentSubject));
-                }
+    if (!local_skip && local_newSubject) {
+        for (let i = 0; i < context.incompleteTriples.length; i++) {
+            let icT = context.incompleteTriples[i];
+            if (icT.direction == 'none') {
+                console.log("TODO - seq12 - direction = none");
+                // TODO: wtf?!?
+                // context.incompleteTriples.push(new incompleteTriples(local_newSubject, null, null, 'WTF'))
+            } else if (icT.direction == 'forward') {
+                addTriple(store, graph, context.parentSubject, icT.predicate, local_newSubject);
+            } else if (icT.direction == 'reverse') {
+                addTriple(store, graph, local_newSubject, icT.predicate, context.parentSubject);
             }
         }
+    }
 
 // seq 13
-        ts.children('*').each(function () {
-            let ths = $(this);
-            let ctx;
+    ts.children('*').each(function () {
+        let ths = $(this);
+        let ctx;
 
-            if (local_skip) {
-                // ctx = $.extend({}, context);
-                // ctx = JSON.parse(JSON.stringify(context));
-                // ctx = jQuery.extend({}, context);
-                // ctx.language = local_language;
-                // ctx.iriMappings = local_iriMappings;
+        if (local_skip) {
+            // ctx = $.extend({}, context);
+            // ctx = JSON.parse(JSON.stringify(context));
+            // ctx = jQuery.extend({}, context);
+            // ctx.language = local_language;
+            // ctx.iriMappings = local_iriMappings;
 
-                ctx = new Context(
-                    context.base,
-                    context.parentSubject,
-                    context.parentObject,
-                    context.incompleteTriples,
-                    local_iriMappings,
-                    local_language,
-                    context.iriMappings,
-                    context.termMappings,
-                    context.defaultVocabulary
-                )
-
-
-            } else {
-                ctx = new Context(
-                    context._base,
-                    local_newSubject ? local_newSubject : context.parentSubject,
-                    local_currentObjectResource
-                        ? local_currentObjectResource
-                        : local_newSubject
-                            ? local_newSubject
-                            : context.parentSubject,
-                    local_incompleteTriples,
-                    local_listMappings,
-                    local_language, //TODO: current language -> https://www.w3.org/TR/rdfa-core/#T-current-language
-                    local_iriMappings,
-                    local_termMappings,
-                    local_defaultVocabulary
-                );
-
-            }
-
-            if (ctx._base === undefined) {
-                console.error("auweia ...");
-            }
+            ctx = new Context(
+                context.base,
+                context.parentSubject,
+                context.parentObject,
+                context.incompleteTriples,
+                local_iriMappings,
+                local_language,
+                context.iriMappings,
+                context.termMappings,
+                context.defaultVocabulary
+            )
 
 
-            processElement($, ths, ctx, graph, store);
-        });
-    } catch (err) {
-        console.error("ERROR: " + err);
-    }
+        } else {
+            ctx = new Context(
+                context._base,
+                local_newSubject ? local_newSubject : context.parentSubject,
+                local_currentObjectResource
+                    ? local_currentObjectResource
+                    : local_newSubject
+                        ? local_newSubject
+                        : context.parentSubject,
+                local_incompleteTriples,
+                local_listMappings,
+                local_language, //TODO: current language -> https://www.w3.org/TR/rdfa-core/#T-current-language
+                local_iriMappings,
+                local_termMappings,
+                local_defaultVocabulary
+            );
+
+        }
+
+        if (ctx._base === undefined) {
+            console.error("auweia ...");
+        }
+
+
+        processElement($, ths, ctx, graph, store);
+    });
+    // } catch (err) {
+    //     console.error("ERROR: " + err);
+    // }
 }
 
 Object.defineProperty(Object.prototype, 'hasOwnPropertyCI', {

@@ -36,7 +36,7 @@ let ownTest = false;
 // only edit here if you want to .........
 
 // fill in the test numbers you want to run
-// testToRun = ['0029'];
+testToRun = ['0033'];
 
 // run all tests, but not these from testNotToRun
 // testNotToRun = ['0014', '0017', '0033', '0048', '0050'];
@@ -92,83 +92,103 @@ getFiles('.html', function (tests) {
 
             rdfStore.create(function (err, store) {
 
-                rdfaParser.parseRDFa(
-                    'file://' + test,
-                    store,
-                    "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/" + testNumber + ".html",
-                    store => {
+                    rdfaParser.parseRDFa(
+                        'file://' + test,
+                        store,
+                        "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/" + testNumber + ".html",
+                        store => {
 
-                        if (logger) console.log('##########################################\n' + 'running test ' + testNumber);
+                            if (logger) console.log('##########################################\n' + 'running test ' + testNumber);
 
-                        // count triples
-                        store.execute("SELECT * { ?s ?p ?o }", function (success, results) {
-                            if (logger) {
-                                console.log('created triples: ' + results.length);
+                            // count triples
+                            store.execute("SELECT * { ?s ?p ?o }", function (success, results) {
+                                if (logger) {
+                                    console.log('created triples: ' + results.length);
 
-                                for (let i = 0; i < results.length; i++) {
-                                    if (results[i].o.token == "literal") {
-                                        console.log("\t<" + results[i].s.value + "> <" + results[i].p.value + "> \"" + results[i].o.value + '"' + (results[i].o.type == '' ? '' : '^^<' + results[i].o.type + '>') + ' .');
-                                    } else {
-                                        console.log("\t<" + results[i].s.value + "> <" + results[i].p.value + "> <" + results[i].o.value + "> .");
-                                    }
-                                }
-                            }
+                                    for (let i = 0; i < results.length; i++) {
 
-                            if (ownTest)
-                                return;
+                                        let s, p, o;
 
-                            let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
-
-                            let sparqlQuery = fs.readFileSync(sparqlFilename, 'utf-8');
-
-                            // TODO: fix FILTER statements
-                            // this removes all lines with FILTER..
-                            // FILTER or isBlank seem not be supported by rdfstore
-                            if (sparqlQuery.indexOf('FILTER') >= 0) {
-                                let lines = sparqlQuery.split('\n');
-                                sparqlQuery = '';
-                                for (let l = 0; l < lines.length; l++) {
-                                    if (lines[l].indexOf('FILTER') < 0)
-                                        sparqlQuery = sparqlQuery + lines[l] + '\n';
-                                }
-
-                            }
-
-                            if (logger) console.log('Query: ' + sparqlQuery);
-
-                            // execute query
-                            try {
-                                store.execute(sparqlQuery, (err, passed) => {
-                                    if (!err) {
-                                        if (logger) console.log('test passed: ' + passed);
-
-                                        if (passed)
-                                            passedArr.push(testNumber);
+                                        if (results[i].s.token == 'blank')
+                                            s = results[i].s.value;
                                         else
-                                            failedArr.push(testNumber);
+                                            s = '<' + results[i].s.value + '>';
 
-                                        testCount++;
+                                        p = '<' + results[i].p.value + '>';
 
-                                    } else {
-                                        console.log(err);
-                                        // throw err;
+                                        if (results[i].o.token == 'literal') {
+                                            o = '"' + results[i].o.value + '"';
+                                            if (results[i].o.type)
+                                                o += '^^<' + results[i].o.type + '>';
+
+                                        } else if (results[i].o.token == 'blank') {
+                                            o = results[i].o.value;
+
+                                        } else {
+                                            o = '<' + results[i].o.value + '>';
+                                        }
+                                        o += ' .';
+
+                                        console.log('\t' + s + ' ' + p + ' ' + o);
+                                    }
+                                }
+
+                                if (ownTest)
+                                    return;
+
+                                let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
+
+                                let sparqlQuery = fs.readFileSync(sparqlFilename, 'utf-8');
+
+                                // TODO: fix FILTER statements
+                                // this removes all lines with FILTER..
+                                // FILTER or isBlank seem not be supported by rdfstore
+                                if (sparqlQuery.indexOf('FILTER') >= 0) {
+                                    let lines = sparqlQuery.split('\n');
+                                    sparqlQuery = '';
+                                    for (let l = 0; l < lines.length; l++) {
+                                        if (lines[l].indexOf('FILTER') < 0)
+                                            sparqlQuery = sparqlQuery + lines[l] + '\n';
                                     }
 
-                                    printResult();
-                                    store.clear();
-                                });
-                            } catch (err) {
-                                testCount++;
-                                failedArr.push(testNumber);
-                                console.error("Query-error:" + err);
-                            }
+                                }
 
-                        });
+                                if (logger) console.log('Query: ' + sparqlQuery);
 
-                    }
-                );
+                                // execute query
+                                try {
+                                    store.execute(sparqlQuery, (err, passed) => {
+                                        if (!err) {
+                                            if (logger) console.log('test passed: ' + passed);
 
-            });
+                                            if (passed)
+                                                passedArr.push(testNumber);
+                                            else
+                                                failedArr.push(testNumber);
+
+                                            testCount++;
+
+                                        } else {
+                                            console.log(err);
+                                            // throw err;
+                                        }
+
+                                        printResult();
+                                        store.clear();
+                                    });
+                                } catch (err) {
+                                    testCount++;
+                                    failedArr.push(testNumber);
+                                    console.error('Query-error:' + err);
+                                }
+
+                            });
+
+                        }
+                    );
+
+                }
+            );
 
         } else {
             skippedArr.push(getTestNumber(test));
@@ -177,7 +197,8 @@ getFiles('.html', function (tests) {
 
     }
 
-});
+})
+;
 
 
 function printResult() {
