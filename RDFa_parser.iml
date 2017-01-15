@@ -3,6 +3,7 @@
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$" />
+    <content url="file://$MODULE_DIR$/node_modules/rdflib" />
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module-library">
@@ -16,6 +17,5 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="library" name="filesystem-DefinitelyTyped" level="application" />
   </component>
 </module>

@@ -23,6 +23,7 @@
 
 const request = require('request');
 const cheerio = require('cheerio');
+const $rdf = require('rdflib');
 const fs = require('fs');
 const os = require('os');
 
@@ -43,28 +44,23 @@ const logger = false;
 /**
  * adds a Triple to the Graph
  * @param store
- * @param graph
  * @param sub
  * @param pre
  * @param obj
  */
-function addTriple(store, graph, sub, pre, obj) {
+function addTriple(store, sub, pre, obj) {
 
-    if (obj instanceof RDFModel.Literal || RDFModel.buildNamedNode) {
+    if (obj instanceof $rdf.BlankNode || obj instanceof $rdf.Literal || typeof obj == 'string') {
 
-        let newNode;
+        if (!(sub instanceof $rdf.BlankNode))
+            sub = $rdf.sym(sub);
 
-        if (!(sub instanceof RDFModel.BlankNode))
-            sub = store.rdf.createNamedNode(sub);
+        pre = $rdf.sym(pre);
 
-        pre = store.rdf.createNamedNode(pre);
+        if (!(obj instanceof $rdf.BlankNode || obj instanceof $rdf.Literal))
+            obj = $rdf.sym(obj);
 
-        if (!(obj instanceof RDFModel.BlankNode || obj instanceof RDFModel.Literal))
-            obj = store.rdf.createNamedNode(obj);
-
-        newNode = store.rdf.createTriple(sub, pre, obj);
-
-        graph.add(newNode);
+        store.add(sub, pre, obj);
 
     } else {
         console.log("could not create triple.");
@@ -74,7 +70,7 @@ function addTriple(store, graph, sub, pre, obj) {
 /**
  * parses RDFa from source (may be URL, file:// or a plain html string) to triples
  * @param source
- * @param store rdfstore instance to insert triples
+ * @param store rdflib store instance to insert triples
  * @param base optional set base to a specific value
  * @param callback
  */
@@ -86,24 +82,17 @@ const parseRDFa = function (source, store, base = null, callback) {
 
         let $ = cheerio.load(html);
 
-        let graph = store.rdf.createGraph();
+        // let graph = store.rdf.createGraph();
 
         $(':root').each(function () {
             let ts = $(this);
             let ctx = getInitialContext($, base);
 
-            processElement($, ts, ctx, graph, store);
+            processElement($, ts, ctx, store);
 
         });
 
-        store.insert(graph, (err, inserted) => {
-            if (!err && inserted) {
-                callback(store);
-            } else {
-                console.log('ERROR inserting graph: ' + err);
-            }
-        });
-
+        callback(store);
 
     });
 };
@@ -194,7 +183,7 @@ let add_local_iriMaps = function (l_iriMaps, prefixString) {
 
 };
 
-function processElement($, ts, context, graph, store) {
+function processElement($, ts, context, store) {
 
     // try {
 
@@ -269,7 +258,7 @@ function processElement($, ts, context, graph, store) {
     //seq 2
     if (vocabAtt) {
         local_defaultVocabulary = context.getURI(ts, 'vocab');
-        addTriple(graph, context.base.spec, usesVocab, local_defaultVocabulary);
+        addTriple(store, context.base.spec, usesVocab, local_defaultVocabulary);
     }
     else if (logger) {
         console.log("seq2 is skipped");
@@ -321,7 +310,7 @@ function processElement($, ts, context, graph, store) {
                     } else if (srcAtt) {
                         local_typedResource = context.getURI(ts, 'src');
                     } else {
-                        local_typedResource = store.rdf.createBlankNode();
+                        local_typedResource = $rdf.blankNode();
                     }
                     local_currentObjectResource = local_typedResource;
                 }
@@ -347,7 +336,7 @@ function processElement($, ts, context, graph, store) {
                 if (ts.is(':root')) {
                     local_newSubject = context.parseTermOrCURIEOrAbsURI('');
                 } else if (typeofAtt) {
-                    local_newSubject = store.rdf.createBlankNode();
+                    local_newSubject = $rdf.blankNode();
                 } else if (context.parentObject) {
                     local_newSubject = context.parentObject;
 
@@ -393,7 +382,7 @@ function processElement($, ts, context, graph, store) {
             } else if (srcAtt) {
                 local_currentObjectResource = context.getURI(ts, 'src');
             } else if (typeofAtt && !aboutAtt && !(inHTMLMode && (ts.is('head') || ts.is('body')))) {
-                local_currentObjectResource = store.rdf.createBlankNode();
+                local_currentObjectResource = $rdf.blankNode();
                 // local_typedResource = local_currentObjectResource;
             }
         }
@@ -423,7 +412,7 @@ function processElement($, ts, context, graph, store) {
         let values = Context.tokenize(typeofAtt);
         if (values) {
             for (let i = 0; i < values.length; i++) {
-                addTriple(store, graph, local_typedResource, typeURI, values[i]);
+                addTriple(store, local_typedResource, typeURI, values[i]);
             }
         }
     }
@@ -453,12 +442,12 @@ function processElement($, ts, context, graph, store) {
             }
         } else if (relAtt) {
             for (let i = 0; i < relAttPredicates.length; i++) {
-                addTriple(store, graph, local_newSubject, relAttPredicates[i], local_currentObjectResource);
+                addTriple(store, local_newSubject, relAttPredicates[i], local_currentObjectResource);
             }
         }
         if (revAtt) {
             for (let i = 0; i < revAttPredicates.length; i++) {
-                addTriple(store, graph, local_currentObjectResource, revAttPredicates[i], local_newSubject);
+                addTriple(store, local_currentObjectResource, revAttPredicates[i], local_newSubject);
             }
         }
 
@@ -466,7 +455,7 @@ function processElement($, ts, context, graph, store) {
 // seq 10
     } else {
         if (local_newSubject && !local_currentObjectResource && (relAtt || revAtt)) {
-            local_currentObjectResource = store.rdf.createBlankNode();
+            local_currentObjectResource = $rdf.blankNode();
             //alert(current.tagName+": generated blank node, newSubject="+newSubject+" currentObjectResource="+currentObjectResource);
         }
 
@@ -562,12 +551,12 @@ function processElement($, ts, context, graph, store) {
                 } else {
                     if (datatype == XMLLiteralURI || datatype == HTMLLiteralURI) {
                         console.log("TODO - seq11 - check");
-                        addTriple(store, graph, local_newSubject, predicate, store.rdf.createLiteral(ts.childNodes, local_language, datatype));
+                        addTriple(store, local_newSubject, predicate, $rdf.literal(ts.childNodes, local_language, datatype));
                     } else {
                         if (datatype && datatype != PlainLiteralURI)
-                            addTriple(store, graph, local_newSubject, predicate, store.rdf.createLiteral(content, local_language, datatype));
+                            addTriple(store, local_newSubject, predicate, $rdf.literal(content, local_language, datatype));
                         else
-                            addTriple(store, graph, local_newSubject, predicate, store.rdf.createLiteral(content));
+                            addTriple(store, local_newSubject, predicate, $rdf.literal(content));
                     }
                 }
             }
@@ -585,9 +574,9 @@ function processElement($, ts, context, graph, store) {
                 // TODO: wtf?!?
                 // context.incompleteTriples.push(new incompleteTriples(local_newSubject, null, null, 'WTF'))
             } else if (icT.direction == 'forward') {
-                addTriple(store, graph, context.parentSubject, icT.predicate, local_newSubject);
+                addTriple(store, context.parentSubject, icT.predicate, local_newSubject);
             } else if (icT.direction == 'reverse') {
-                addTriple(store, graph, local_newSubject, icT.predicate, context.parentSubject);
+                addTriple(store, local_newSubject, icT.predicate, context.parentSubject);
             }
         }
     }
@@ -641,7 +630,7 @@ function processElement($, ts, context, graph, store) {
         }
 
 
-        processElement($, ths, ctx, graph, store);
+        processElement($, ths, ctx, store);
     });
     // } catch (err) {
     //     console.error("ERROR: " + err);
