@@ -47,6 +47,7 @@ const objectURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#object";
 const logger = false;
 
 let triples = [];
+let getStore; // TODO
 
 
 /**
@@ -59,30 +60,25 @@ let triples = [];
  */
 function addTriple(store, graph, sub, pre, obj) {
 
-    if (store != null) {
-        if (obj instanceof RDFModel.Literal || RDFModel.buildNamedNode) {
+    if (obj instanceof RDFModel.Literal || RDFModel.buildNamedNode) {
+    // if (typeof obj === 'object') {
 
-            let newNode;
+        let newNode;
 
-            if (!(sub instanceof RDFModel.BlankNode))
-                sub = store.rdf.createNamedNode(sub);
+        if (!(sub instanceof RDFModel.BlankNode))
+            sub = store.rdf.createNamedNode(sub);
 
-            pre = store.rdf.createNamedNode(pre);
+        pre = store.rdf.createNamedNode(pre);
 
-            if (!(obj instanceof RDFModel.BlankNode || obj instanceof RDFModel.Literal))
-                obj = store.rdf.createNamedNode(obj);
+        if (!(obj instanceof RDFModel.BlankNode || obj instanceof RDFModel.Literal))
+            obj = store.rdf.createNamedNode(obj);
 
-            newNode = store.rdf.createTriple(sub, pre, obj);
+        newNode = store.rdf.createTriple(sub, pre, obj);
 
-            graph.add(newNode);
-
-            //console.log(newNode);
-        } else {
-            console.log("could not create triple.");
-        }
+        graph.add(newNode);
+        triples.push(newNode);
     } else {
-        // TODO
-        console.log("TODO - addTriple");
+        console.log("could not create triple.");
     }
 }
 
@@ -101,7 +97,7 @@ function createBlankNode(store = null) {
  * @param base optional set base to a specific value
  * @param callback
  */
-const parseRDFa = function (source, store, base = null, callback) {
+const parseRDFa = function (getStore, source, store, base = null, callback) {
 // const parseRDFa = function (source, store, callback, base = null) {
 
 
@@ -122,13 +118,17 @@ const parseRDFa = function (source, store, base = null, callback) {
 
         });
 
-        store.insert(graph, (err, inserted) => {
-            if (!err && inserted) {
-                callback(store);
-            } else {
-                console.log('ERROR inserting graph: ' + err);
-            }
-        });
+        if(getStore) {
+            store.insert(graph, (err, inserted) => {
+                if (!err && inserted) {
+                    callback(store);
+                } else {
+                    console.log('ERROR inserting graph: ' + err);
+                }
+            });
+        } else {
+            callback(triples);
+        }
 
         // TODO: try for bugfix with blankedNode
         // store.insert(store.rdf.createGraph(triples), graph, function(success, cnt) {
@@ -300,7 +300,8 @@ function processElement($, ts, context, graph, store) {
     //seq 2
     if (vocabAtt) {
         local_defaultVocabulary = context.getURI(ts, 'vocab');
-        addTriple(graph, context.base.spec, usesVocab, local_defaultVocabulary);
+        // addTriple(store, graph, context.base.spec, usesVocab, local_defaultVocabulary);
+        addTriple(store, graph, context.base, usesVocab, local_defaultVocabulary);
     }
     else if (logger) {
         console.log("seq2 is skipped");

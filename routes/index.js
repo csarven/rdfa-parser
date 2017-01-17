@@ -18,35 +18,27 @@ router.post('/', function (req, res) {
 
     rdfStore.create(function (err, store) {
 
-        rdfa_parser.parseRDFa(text, store, "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/", store => {
-
-            store.execute("SELECT * { ?s ?p ?o }", function (success, results) {
-
-                // let tripleCount = "created triples" + results.length.toString() + "\n";
+        rdfa_parser.parseRDFa(
+            false,
+            text,
+            store,
+            "http://webPage.at/", // TODO
+            results => {
                 let triple;
                 let tmp = [];
                 let double;
                 let sub, prä, obj;
 
-                // for(let i = 0; i < results.length; i++) {
-                //     sub = results[i].s.value.toString();
-                //     prä = results[i].p.value.toString();
-                //     obj = results[i].o.value.toString();
-                //     triple = "<" + sub + "> <" + prä + "> <" + obj + ">\n";
-                //     triplesList.push(triple);
-                //     console.log(triple);
-                // }
-
                 // new structured output: TODO : just for presentation ...
                 while(results.length > 0) {
-                    sub = results[0].s.value.toString();
+                    sub = results[0].subject.nominalValue.toString();
                     tmp.push("<" + sub + ">\n");
 
                     for(let j = 0; j < results.length; j++) {
-                        let subtmp = results[j].s.value.toString();
+                        let subtmp = results[j].subject.nominalValue.toString();
                         if(subtmp === sub) {
-                            prä = results[j].p.value.toString();
-                            obj = results[j].o.value.toString();
+                            prä = results[j].predicate.nominalValue.toString();
+                            obj = results[j].object.nominalValue.toString();
                             double = "\t<" + prä + "> <" + obj + ">\n";
                             tmp.push(double);
                             results.splice(j, 1);
@@ -62,7 +54,6 @@ router.post('/', function (req, res) {
 
                 res.send(triple);
             });
-        });
     });
 });
 
