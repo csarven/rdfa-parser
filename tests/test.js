@@ -9,12 +9,8 @@
  */
 
 const fs = require('fs');
-const rdfStore = require('rdfstore');
+const stardog = require('stardog');
 const rdfaParser = require('../routes/rdfa_parser.js');
-
-// var deasync = require('deasync');
-// var cp = require('child_process');
-// var exec = deasync(cp.exec);
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 // DO NOT EDIT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -30,20 +26,25 @@ let testMaxToRun = ['9999'];
 let testToRun = [];
 let testNotToRun = [];
 
-let path = './tests/cache/html5/';
+let path = './cache/html5/';
 let ownTest = false;
+
+const db_name = 'test_db';
+const db = new stardog.Connection();
+db.setEndpoint('http://localhost:5820/');
+db.setCredentials('tester', 'tester');
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 // only edit here if you want to .........
 
 // fill in the test numbers you want to run
-testToRun = ['0033'];
+// testToRun = ['0033'];
 
 // run all tests, but not these from testNotToRun
 // testNotToRun = ['0014', '0017', '0033', '0048', '0050'];
 // testNotToRun = ['0099'];
 
 // run all tests < testMaxToRun
-testMaxToRun = ['0050'];
+testMaxToRun = ['0053'];
 
 // define special test directory and set ownTest = true
 // path = './own/';
@@ -78,10 +79,44 @@ function getFiles(filter, callback) {
     });
 }
 
+/**
+ * returns html content from file, web or plain html text
+ * @param source can be URL starting with 'http' or file starting with 'file://' or plain html text
+ * @returns {string} html content
+ */
+const getHTML = function (source) {
 
+    source = source.trim();
+
+    if (source.startsWith('http')) {
+        /*
+         request(source, function (error, response, html) {
+         if (!error && response.statusCode == 200) {
+         callback(html);
+         }
+         });
+         */
+        crawler(source, 2, callback);
+
+    } else if (source.startsWith('./')) {
+        //noinspection JSUnresolvedFunction
+        return fs.readFileSync(source, 'utf-8');
+
+    } else if (source.startsWith('<') && source.endsWith('>')) {
+        // throw new Error('plain html not possible atm..');
+        return source;
+
+    } else {
+        throw new Error('could not detect input format');
+
+    }
+
+
+};
+
+
+// main...
 getFiles('.html', function (tests) {
-// function runAll(tests) {
-//     tests.forEach(test => {
     for (let i = 0; i < tests.length; i++) {
         let test = tests[i];
         let testNumber = getTestNumber(test);
@@ -90,103 +125,60 @@ getFiles('.html', function (tests) {
             testNotToRun.indexOf(testNumber) < 0 &&
             testNumber <= testMaxToRun)) {
 
-            rdfStore.create(function (err, store) {
+            emptyDB(db);
 
-                    rdfaParser.parseRDFa(
-                        'file://' + test,
-                        store,
-                        "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/" + testNumber + ".html",
-                        store => {
+            let html = getHTML(test);
+            let base = "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/" + testNumber + ".html";
 
-                            if (logger) console.log('##########################################\n' + 'running test ' + testNumber);
+            rdfaParser.parseRDFa(
+                html,
+                base,
+                function (triples) {
 
-                            // count triples
-                            store.execute("SELECT * { ?s ?p ?o }", function (success, results) {
-                                if (logger) {
-                                    console.log('created triples: ' + results.length);
+                    console.log("created " + triples.length + " triples:");
+                    if (logger) console.log(triplesToString(triples));
 
-                                    for (let i = 0; i < results.length; i++) {
+                    console.log('insert into db');
+                    insertTriples(triples, function () {
 
-                                        let s, p, o;
+                        if (logger) console.log('##########################################\n' + 'running test ' + testNumber);
 
-                                        if (results[i].s.token == 'blank')
-                                            s = results[i].s.value;
-                                        else
-                                            s = '<' + results[i].s.value + '>';
+                        if (ownTest)
+                            return;
 
-                                        p = '<' + results[i].p.value + '>';
+                        let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
 
-                                        if (results[i].o.token == 'literal') {
-                                            o = '"' + results[i].o.value + '"';
-                                            if (results[i].o.type)
-                                                o += '^^<' + results[i].o.type + '>';
+                        let sparqlQuery = fs.readFileSync(sparqlFilename, 'utf-8');
 
-                                        } else if (results[i].o.token == 'blank') {
-                                            o = results[i].o.value;
+                        if (logger) console.log('Query: ' + sparqlQuery);
 
-                                        } else {
-                                            o = '<' + results[i].o.value + '>';
-                                        }
-                                        o += ' .';
+                        // execute query
+                        try {
+                            db.query(
+                                {
+                                    database: db_name,
+                                    query: sparqlQuery
+                                }, (data) => {
 
-                                        console.log('\t' + s + ' ' + p + ' ' + o);
-                                    }
-                                }
+                                    let passed = data.boolean;
 
-                                if (ownTest)
-                                    return;
+                                    if (logger) console.log('test passed: ' + passed);
 
-                                let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
+                                    if (passed)
+                                        passedArr.push(testNumber);
+                                    else
+                                        failedArr.push(testNumber);
 
-                                let sparqlQuery = fs.readFileSync(sparqlFilename, 'utf-8');
-
-                                // TODO: fix FILTER statements
-                                // this removes all lines with FILTER..
-                                // FILTER or isBlank seem not be supported by rdfstore
-                                if (sparqlQuery.indexOf('FILTER') >= 0) {
-                                    let lines = sparqlQuery.split('\n');
-                                    sparqlQuery = '';
-                                    for (let l = 0; l < lines.length; l++) {
-                                        if (lines[l].indexOf('FILTER') < 0)
-                                            sparqlQuery = sparqlQuery + lines[l] + '\n';
-                                    }
-
-                                }
-
-                                if (logger) console.log('Query: ' + sparqlQuery);
-
-                                // execute query
-                                try {
-                                    store.execute(sparqlQuery, (err, passed) => {
-                                        if (!err) {
-                                            if (logger) console.log('test passed: ' + passed);
-
-                                            if (passed)
-                                                passedArr.push(testNumber);
-                                            else
-                                                failedArr.push(testNumber);
-
-                                            testCount++;
-
-                                        } else {
-                                            console.log(err);
-                                            // throw err;
-                                        }
-
-                                        printResult();
-                                        store.clear();
-                                    });
-                                } catch (err) {
                                     testCount++;
-                                    failedArr.push(testNumber);
-                                    console.error('Query-error:' + err);
-                                }
 
-                            });
-
+                                    printResult();
+                                });
+                        } catch (err) {
+                            testCount++;
+                            failedArr.push(testNumber);
+                            console.error('Query-error:' + err);
                         }
-                    );
-
+                    });
                 }
             );
 
@@ -197,8 +189,66 @@ getFiles('.html', function (tests) {
 
     }
 
-})
-;
+});
+
+function triplesToString(triples) {
+    let retVal = '';
+
+    for (let i = 0; i < triples.length; i++) {
+        retVal += triples[i].toString() + '\n';
+    }
+    return retVal
+}
+
+function insertTriples(triples, callback) {
+
+    let q = 'INSERT DATA { ' + triplesToString(triples) + ' }';
+
+    db.query(
+        {
+            database: db_name,
+            query: q,
+            limit: 100
+        }, function (data, response) {
+            if (response.statusCode != 200) {
+                console.log('ERROR could not insert triples: \n\t' + data);
+            } else {
+                console.log('inserted triples');
+                callback();
+            }
+        }
+    );
+}
+
+// function getAllTriples(db) {
+//
+//     db.query(
+//         {
+//             database: db_name,
+//             query: 'SELECT * { ?s ?p ?o }',
+//             limit: 100
+//         }, function (data) {
+//             if (logger) {
+//                 console.log('created triples: ' + results.length);
+//
+//
+//             }
+//         });
+// }
+
+function emptyDB(db) {
+    db.query(
+        {
+            database: db_name,
+            query: 'DELETE {?s ?p ?o} WHERE {?s ?p ?o}'
+        },
+        function (data) {
+            if (!data.boolean) {
+                console.log('ERROR: could not empty db');
+            }
+        }
+    );
+}
 
 
 function printResult() {

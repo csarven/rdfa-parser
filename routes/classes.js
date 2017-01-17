@@ -370,7 +370,7 @@ class Context {
             let prefix = value.substring(0, colon);
             if (prefix == "") {
                 // default prefix
-                uri = prefixes[""];
+                uri = this.iriMappings[""];
                 return uri ? uri + value.substring(colon + 1) : null;
             } else if (prefix == "_") {
                 // blank node

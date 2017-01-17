@@ -25,6 +25,7 @@ const request = require('request');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const os = require('os');
+const rdf = require('rdf');
 
 require('./classes.js');
 const rdfaCore = require('./rdfa_core.json');
@@ -39,113 +40,58 @@ const objectURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#object";
 
 const logger = false;
 
+let triples = [];
+
 
 /**
  * adds a Triple to the Graph
- * @param store
- * @param graph
  * @param sub
  * @param pre
  * @param obj
  */
-function addTriple(store, graph, sub, pre, obj) {
+function addTriple(sub, pre, obj) {
 
-    if (obj instanceof RDFModel.Literal || RDFModel.buildNamedNode) {
+    if (!(sub instanceof rdf.BlankNode))
+        sub = rdf.environment.createNamedNode(sub);
 
-        let newNode;
+    pre = rdf.environment.createNamedNode(pre);
 
-        if (!(sub instanceof RDFModel.BlankNode))
-            sub = store.rdf.createNamedNode(sub);
+    if (!(obj instanceof rdf.BlankNode || obj instanceof rdf.Literal))
+        obj = rdf.environment.createNamedNode(obj);
 
-        pre = store.rdf.createNamedNode(pre);
+    let triple = rdf.environment.createTriple(sub, pre, obj);
 
-        if (!(obj instanceof RDFModel.BlankNode || obj instanceof RDFModel.Literal))
-            obj = store.rdf.createNamedNode(obj);
-
-        newNode = store.rdf.createTriple(sub, pre, obj);
-
-        graph.add(newNode);
-
-    } else {
-        console.log("could not create triple.");
-    }
+    triples.push(triple);
 }
 
 /**
- * parses RDFa from source (may be URL, file:// or a plain html string) to triples
- * @param source
- * @param store rdfstore instance to insert triples
+ * parses RDFa from html
+ * @param html
  * @param base optional set base to a specific value
  * @param callback
  */
-const parseRDFa = function (source, store, base = null, callback) {
-// const parseRDFa = function (source, store, callback, base = null) {
+const parseRDFa = function (html, base = null, callback) {
 
+    rdf.setBuiltins();
 
-    getHTML(source, function (html) {
+    let $ = cheerio.load(html);
 
-        let $ = cheerio.load(html);
+    $(':root').each(function () {
+        let ts = $(this);
+        let ctx = getInitialContext($, base);
 
-        let graph = store.rdf.createGraph();
-
-        $(':root').each(function () {
-            let ts = $(this);
-            let ctx = getInitialContext($, base);
-
-            processElement($, ts, ctx, graph, store);
-
-        });
-
-        store.insert(graph, (err, inserted) => {
-            if (!err && inserted) {
-                callback(store);
-            } else {
-                console.log('ERROR inserting graph: ' + err);
-            }
-        });
-
+        processElement($, ts, ctx);
 
     });
-};
 
-/**
- * returns html content from file, web or plain html text
- * @param source can be URL starting with 'http' or file starting with 'file://' or plain html text
- * @param callback
- * @returns {string} html content
- */
-const getHTML = function (source, callback) {
-
-    source = source.trim();
-
-    if (source.startsWith('http')) {
-        /*
-         request(source, function (error, response, html) {
-         if (!error && response.statusCode == 200) {
-         callback(html);
-         }
-         });
-         */
-        crawler(source, 2, callback);
-
-    } else if (source.startsWith('file://')) {
-        //noinspection JSUnresolvedFunction
-        fs.readFile(source.substr(7), 'utf-8', function (err, data) {
-            if (err) throw err;
-            callback(data);
-        })
-
-    } else if (source.startsWith('<') && source.endsWith('>')) {
-        // throw new Error('plain html not possible atm..');
-        callback(source);
-
+    if (!callback) {
+        return triples;
     } else {
-        throw new Error('could not detect input format');
-
+        callback(triples);
     }
 
-
 };
+
 
 function getInitialContext($, base) {
 
@@ -194,7 +140,7 @@ let add_local_iriMaps = function (l_iriMaps, prefixString) {
 
 };
 
-function processElement($, ts, context, graph, store) {
+function processElement($, ts, context) {
 
     // try {
 
@@ -269,7 +215,7 @@ function processElement($, ts, context, graph, store) {
     //seq 2
     if (vocabAtt) {
         local_defaultVocabulary = context.getURI(ts, 'vocab');
-        addTriple(graph, context.base.spec, usesVocab, local_defaultVocabulary);
+        addTriple(context.base.spec, usesVocab, local_defaultVocabulary);
     }
     else if (logger) {
         console.log("seq2 is skipped");
@@ -321,7 +267,7 @@ function processElement($, ts, context, graph, store) {
                     } else if (srcAtt) {
                         local_typedResource = context.getURI(ts, 'src');
                     } else {
-                        local_typedResource = store.rdf.createBlankNode();
+                        local_typedResource = rdf.environment.createBlankNode();
                     }
                     local_currentObjectResource = local_typedResource;
                 }
@@ -347,7 +293,7 @@ function processElement($, ts, context, graph, store) {
                 if (ts.is(':root')) {
                     local_newSubject = context.parseTermOrCURIEOrAbsURI('');
                 } else if (typeofAtt) {
-                    local_newSubject = store.rdf.createBlankNode();
+                    local_newSubject = rdf.environment.createBlankNode();
                 } else if (context.parentObject) {
                     local_newSubject = context.parentObject;
 
@@ -393,7 +339,7 @@ function processElement($, ts, context, graph, store) {
             } else if (srcAtt) {
                 local_currentObjectResource = context.getURI(ts, 'src');
             } else if (typeofAtt && !aboutAtt && !(inHTMLMode && (ts.is('head') || ts.is('body')))) {
-                local_currentObjectResource = store.rdf.createBlankNode();
+                local_currentObjectResource = rdf.environment.createBlankNode();
                 // local_typedResource = local_currentObjectResource;
             }
         }
@@ -413,7 +359,7 @@ function processElement($, ts, context, graph, store) {
                 id = local_currentObjectResource;
             }
             console.log("TODO - setting new subject origin ...");
-            // var snode = store.rdf.create
+            // var snode = rdf.create
         }
     }
 
@@ -423,7 +369,7 @@ function processElement($, ts, context, graph, store) {
         let values = Context.tokenize(typeofAtt);
         if (values) {
             for (let i = 0; i < values.length; i++) {
-                addTriple(store, graph, local_typedResource, typeURI, values[i]);
+                addTriple(local_typedResource, typeURI, values[i]);
             }
         }
     }
@@ -453,12 +399,12 @@ function processElement($, ts, context, graph, store) {
             }
         } else if (relAtt) {
             for (let i = 0; i < relAttPredicates.length; i++) {
-                addTriple(store, graph, local_newSubject, relAttPredicates[i], local_currentObjectResource);
+                addTriple(local_newSubject, relAttPredicates[i], local_currentObjectResource);
             }
         }
         if (revAtt) {
             for (let i = 0; i < revAttPredicates.length; i++) {
-                addTriple(store, graph, local_currentObjectResource, revAttPredicates[i], local_newSubject);
+                addTriple(local_currentObjectResource, revAttPredicates[i], local_newSubject);
             }
         }
 
@@ -466,7 +412,7 @@ function processElement($, ts, context, graph, store) {
 // seq 10
     } else {
         if (local_newSubject && !local_currentObjectResource && (relAtt || revAtt)) {
-            local_currentObjectResource = store.rdf.createBlankNode();
+            local_currentObjectResource = rdf.environment.createBlankNode();
             //alert(current.tagName+": generated blank node, newSubject="+newSubject+" currentObjectResource="+currentObjectResource);
         }
 
@@ -562,12 +508,12 @@ function processElement($, ts, context, graph, store) {
                 } else {
                     if (datatype == XMLLiteralURI || datatype == HTMLLiteralURI) {
                         console.log("TODO - seq11 - check");
-                        addTriple(store, graph, local_newSubject, predicate, store.rdf.createLiteral(ts.childNodes, local_language, datatype));
+                        addTriple(local_newSubject, predicate, rdf.environment.createLiteral(ts.childNodes, local_language, datatype));
                     } else {
                         if (datatype && datatype != PlainLiteralURI)
-                            addTriple(store, graph, local_newSubject, predicate, store.rdf.createLiteral(content, local_language, datatype));
+                            addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content, local_language, datatype));
                         else
-                            addTriple(store, graph, local_newSubject, predicate, store.rdf.createLiteral(content));
+                            addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content));
                     }
                 }
             }
@@ -585,9 +531,9 @@ function processElement($, ts, context, graph, store) {
                 // TODO: wtf?!?
                 // context.incompleteTriples.push(new incompleteTriples(local_newSubject, null, null, 'WTF'))
             } else if (icT.direction == 'forward') {
-                addTriple(store, graph, context.parentSubject, icT.predicate, local_newSubject);
+                addTriple(context.parentSubject, icT.predicate, local_newSubject);
             } else if (icT.direction == 'reverse') {
-                addTriple(store, graph, local_newSubject, icT.predicate, context.parentSubject);
+                addTriple(local_newSubject, icT.predicate, context.parentSubject);
             }
         }
     }
@@ -641,7 +587,7 @@ function processElement($, ts, context, graph, store) {
         }
 
 
-        processElement($, ths, ctx, graph, store);
+        processElement($, ths, ctx);
     });
     // } catch (err) {
     //     console.error("ERROR: " + err);
@@ -675,5 +621,4 @@ Object.defineProperty(Object.prototype, 'getCI', {
 });
 
 
-exports.getHTML = getHTML;
 exports.parseRDFa = parseRDFa;
