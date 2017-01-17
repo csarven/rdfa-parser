@@ -143,7 +143,7 @@ function myCrawler(url, cDepth, cb){
 				 * 
 				 */
 				cb( title );	// In finaler Version: "responseBuffer" (current html to load with cheerio module (in RDFa_parser)) anstatt "title"
-				//cb( responseBuffer );
+				// cb( responseBuffer );
 			}
 		}
 	

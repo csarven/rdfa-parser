@@ -30,6 +30,13 @@ require('./classes.js');
 const rdfaCore = require('./rdfa_core.json');
 const crawler = require('./crawler.js');
 
+// var fs = require('fs');
+// var marklogic = require('marklogic');
+// var my = require('./my-connection.js');
+// var db = marklogic.createDatabaseClient(my.connInfo);
+
+
+
 const PlainLiteralURI = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral';
 const typeURI = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
 const usesVocab = 'http://www.w3.org/ns/rdfa#usesVocabulary';
@@ -38,6 +45,8 @@ const HTMLLiteralURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#HTML";
 const objectURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#object";
 
 const logger = false;
+
+let triples = [];
 
 
 /**
@@ -50,25 +59,39 @@ const logger = false;
  */
 function addTriple(store, graph, sub, pre, obj) {
 
-    if (obj instanceof RDFModel.Literal || RDFModel.buildNamedNode) {
+    if (store != null) {
+        if (obj instanceof RDFModel.Literal || RDFModel.buildNamedNode) {
 
-        let newNode;
+            let newNode;
 
-        if (!(sub instanceof RDFModel.BlankNode))
-            sub = store.rdf.createNamedNode(sub);
+            if (!(sub instanceof RDFModel.BlankNode))
+                sub = store.rdf.createNamedNode(sub);
 
-        pre = store.rdf.createNamedNode(pre);
+            pre = store.rdf.createNamedNode(pre);
 
-        if (!(obj instanceof RDFModel.BlankNode || obj instanceof RDFModel.Literal))
-            obj = store.rdf.createNamedNode(obj);
+            if (!(obj instanceof RDFModel.BlankNode || obj instanceof RDFModel.Literal))
+                obj = store.rdf.createNamedNode(obj);
 
-        newNode = store.rdf.createTriple(sub, pre, obj);
+            newNode = store.rdf.createTriple(sub, pre, obj);
 
-        graph.add(newNode);
+            graph.add(newNode);
 
+            //console.log(newNode);
+        } else {
+            console.log("could not create triple.");
+        }
     } else {
-        console.log("could not create triple.");
+        // TODO
+        console.log("TODO - addTriple");
     }
+}
+
+function createBlankNode(store = null) {
+
+    if(store != null)
+        return store.rdf.createBlankNode(store);
+    else
+        return "_:x"; // TODO
 }
 
 /**
@@ -86,7 +109,10 @@ const parseRDFa = function (source, store, base = null, callback) {
 
         let $ = cheerio.load(html);
 
-        let graph = store.rdf.createGraph();
+        let graph;
+
+        if(store != null)
+             graph = store.rdf.createGraph();
 
         $(':root').each(function () {
             let ts = $(this);
@@ -103,6 +129,11 @@ const parseRDFa = function (source, store, base = null, callback) {
                 console.log('ERROR inserting graph: ' + err);
             }
         });
+
+        // TODO: try for bugfix with blankedNode
+        // store.insert(store.rdf.createGraph(triples), graph, function(success, cnt) {
+        //     if (success) callback(store);
+        // });
 
 
     });
@@ -321,7 +352,7 @@ function processElement($, ts, context, graph, store) {
                     } else if (srcAtt) {
                         local_typedResource = context.getURI(ts, 'src');
                     } else {
-                        local_typedResource = store.rdf.createBlankNode();
+                        local_typedResource = createBlankNode(store);
                     }
                     local_currentObjectResource = local_typedResource;
                 }
@@ -347,7 +378,7 @@ function processElement($, ts, context, graph, store) {
                 if (ts.is(':root')) {
                     local_newSubject = context.parseTermOrCURIEOrAbsURI('');
                 } else if (typeofAtt) {
-                    local_newSubject = store.rdf.createBlankNode();
+                    local_newSubject = createBlankNode(store);
                 } else if (context.parentObject) {
                     local_newSubject = context.parentObject;
 
@@ -393,7 +424,7 @@ function processElement($, ts, context, graph, store) {
             } else if (srcAtt) {
                 local_currentObjectResource = context.getURI(ts, 'src');
             } else if (typeofAtt && !aboutAtt && !(inHTMLMode && (ts.is('head') || ts.is('body')))) {
-                local_currentObjectResource = store.rdf.createBlankNode();
+                local_currentObjectResource = createBlankNode(store);
                 // local_typedResource = local_currentObjectResource;
             }
         }
@@ -466,7 +497,7 @@ function processElement($, ts, context, graph, store) {
 // seq 10
     } else {
         if (local_newSubject && !local_currentObjectResource && (relAtt || revAtt)) {
-            local_currentObjectResource = store.rdf.createBlankNode();
+            local_currentObjectResource = createBlankNode(store);
             //alert(current.tagName+": generated blank node, newSubject="+newSubject+" currentObjectResource="+currentObjectResource);
         }
 

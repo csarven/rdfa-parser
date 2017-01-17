@@ -30,7 +30,7 @@ let testMaxToRun = ['9999'];
 let testToRun = [];
 let testNotToRun = [];
 
-let path = './tests/cache/html5/';
+let path = './cache/html5/';
 let ownTest = false;
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 // only edit here if you want to .........
@@ -43,7 +43,7 @@ testToRun = ['0033'];
 // testNotToRun = ['0099'];
 
 // run all tests < testMaxToRun
-testMaxToRun = ['0050'];
+// testMaxToRun = ['0060'];
 
 // define special test directory and set ownTest = true
 // path = './own/';
@@ -99,7 +99,7 @@ getFiles('.html', function (tests) {
                         store => {
 
                             if (logger) console.log('##########################################\n' + 'running test ' + testNumber);
-
+                            
                             // count triples
                             store.execute("SELECT * { ?s ?p ?o }", function (success, results) {
                                 if (logger) {
@@ -181,24 +181,15 @@ getFiles('.html', function (tests) {
                                     failedArr.push(testNumber);
                                     console.error('Query-error:' + err);
                                 }
-
                             });
-
-                        }
-                    );
-
-                }
-            );
-
+                        });
+                });
         } else {
             skippedArr.push(getTestNumber(test));
             testCount++;
         }
-
     }
-
-})
-;
+});
 
 
 function printResult() {
