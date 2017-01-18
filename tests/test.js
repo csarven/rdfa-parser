@@ -41,15 +41,15 @@ db.setCredentials('admin', 'admin');
 // only edit here if you want to .........
 
 // fill in the test numbers you want to run
-// testToRun = ['0001'];
+testToRun = ['0070'];
 
 // run all tests, but not these from testNotToRun
 // testNotToRun = ['0014', '0017', '0033', '0048', '0050'];
 // testNotToRun = ['0099'];
 
 // run all tests < testMaxToRun
-testMinToRun = ['0000'];
-testMaxToRun = ['0050'];
+testMinToRun = ['0054'];
+testMaxToRun = ['0070'];
 
 // define special test directory and set ownTest = true
 // path = './own/';
@@ -65,7 +65,7 @@ function getTestNumber(test) {
     return test.split('/').slice(-1)[0].split('.')[0];
 }
 
-function getFiles(filter, callback) {
+function getTests(filter, callback) {
     let tests = [];
 
     fs.readdir(path, (err, files) => {
@@ -75,8 +75,21 @@ function getFiles(filter, callback) {
             console.error(">>> run download-html5.sh");
         } else {
             files.forEach(file => {
-                if (file.indexOf(filter) >= 0)
-                    tests.push(path + file);
+                if (file.indexOf(filter) >= 0) {
+
+                    let testNumber = getTestNumber(file);
+                    if (ownTest ||
+                        ((testToRun.indexOf(testNumber) >= 0 || testToRun.length == 0) &&
+                        testNotToRun.indexOf(testNumber) < 0 &&
+                        testNumber <= testMaxToRun &&
+                        testNumber >= testMinToRun)) {
+
+                        tests.push(path + file);
+                    } else {
+                        skippedArr.push(getTestNumber(file));
+                    }
+
+                }
             });
             callback(tests);
             totalTestCount = tests.length;
@@ -119,92 +132,84 @@ const getHTML = function (source) {
 
 };
 
+function doTest(tests, i) {
 
-// main...
-getFiles('.html', function (tests) {
-    for (let i = 0; i < tests.length; i++) {
-        let test = tests[i];
-        let testNumber = getTestNumber(test);
-        if (ownTest ||
-            ((testToRun.indexOf(testNumber) >= 0 || testToRun.length == 0) &&
-            testNotToRun.indexOf(testNumber) < 0 &&
-            testNumber <= testMaxToRun &&
-            testNumber >= testMinToRun)) {
+    // for (let i = 0; i < tests.length; i++) {
+    let test = tests[i];
 
-            emptyDB(db)
+    emptyDB(db)
+        .then(function () {
+
+            let testNumber = getTestNumber(test);
+            let html = getHTML(test);
+            let base = "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/" + testNumber + ".html";
+
+            let triples = rdfaParser.parseRDFa(
+                html,
+                base);
+
+            if (ownTest)
+                return;
+
+            insertTriples(triples)
                 .then(function () {
-
-                    let html = getHTML(test);
-                    let base = "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/" + testNumber + ".html";
-
-                    let triples = rdfaParser.parseRDFa(
-                        html,
-                        base);
-
-                    if (ownTest)
-                        return;
-
-                    insertTriples(triples)
-                        .then(function () {
 
 
                         let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
                         let sparqlQuery = fs.readFileSync(sparqlFilename, 'utf-8');
 
+                    if (logger) {
+                        console.log('##########################################\n' + 'running test ' + testNumber);
+                        console.log("created " + triples.length + " triples:");
+                    }
+                    // console.log(triplesToString(triples));
+                    getAllTriples(db)
+                        .then(function (data) {
                             if (logger) {
-                                console.log('##########################################\n' + 'running test ' + testNumber);
-                                console.log("created " + triples.length + " triples:");
+                                for (let i = 0; i < data.length; i++) {
+                                    console.log(data[i].s.value.toNT() + " " + data[i].s.value.toNT() + " " + data[i].s.value.toNT());
+                                }
+                                console.log('Query: ' + sparqlQuery);
                             }
-                            // console.log(triplesToString(triples));
-                            getAllTriples(db)
-                                .then(function (data) {
-                                    if (logger) {
-                                        for (let i = 0; i < data.length; i++) {
-                                            console.log(data[i].s.value.toNT() + " " + data[i].s.value.toNT() + " " + data[i].s.value.toNT());
-                                        }
-                                        console.log('Query: ' + sparqlQuery);
-                                    }
 
-                                    let passed;
-                                    executeQuery(db, sparqlQuery)
-                                        .then(function () {
-                                            passed = true;
-                                            passedArr.push(testNumber);
-                                            if (logger) console.log('passed test: ' + testNumber);
-                                            printResult();
-                                        })
-                                        .catch(function () {
-                                            passed = false;
-                                            failedArr.push(testNumber);
-                                            if (logger) console.log('test failed: ' + testNumber);
-                                        });
+                            executeQuery(db, sparqlQuery)
+                                .then(function () {
+                                    passedArr.push(testNumber);
+                                    if (logger) console.log('passed test: ' + testNumber);
+                                    printResult();
+                                    if (i < tests.length) doTest(tests, ++i);
+
                                 })
                                 .catch(function () {
-                                    console.log('Error reading triples');
+                                    console.log(e);
+                                    failedArr.push(testNumber);
+                                    printResult();
+                                    if (i < tests.length) doTest(tests, ++i);
                                 });
-
-
                         })
-                        .catch(function (e) {
-                            console.log(e);
-                            failedArr.push(testNumber);
-                            testCount++;
-                        });
+
 
                 })
-                .catch(function () {
-                    console.log('Error: could not empty db');
+
+                .catch(function (e) {
+                    console.log(e);
+                    failedArr.push(testNumber);
+                    printResult();
+                    if (i < tests.length) doTest(tests, ++i);
                 });
 
+        })
+        .catch(function () {
+            console.log('Error: could not empty db');
+            failedArr.push(getTestNumber(test));
+            printResult();
+            if (i < tests.length) doTest(tests, ++i);
+        });
 
-        } else {
-            skippedArr.push(getTestNumber(test));
-            testCount++;
-        }
 
-    }
+// }
 
-});
+}
 
 function triplesToString(triples) {
     let retVal = '';
@@ -214,6 +219,13 @@ function triplesToString(triples) {
     }
     return retVal
 }
+
+let i = 0;
+// main...
+getTests('.html', function (tests) {
+    doTest(tests, i)
+
+});
 
 function executeQuery(db, sparqlQuery) {
     return new Promise(function (resolve, reject) {
@@ -281,7 +293,7 @@ function emptyDB(db) {
                 database: db_name,
                 query: 'DELETE {?s ?p ?o} WHERE {?s ?p ?o}'
             },
-            function (data) {
+            function (data, response) {
                 if (data.boolean) {
                     resolve();
                 } else {
@@ -301,7 +313,7 @@ function printResult() {
         let skipped = testCount - done;
 
         console.log("=====================================================================");
-        console.log("Tried " + done + " tests (passed:" + passedArr.length + " || failed:" + failedArr.length + ") skipped: " + skipped + " of total: " + testCount);
+    console.log("Tried " + done + " tests (passed:" + passedArr.length + " || failed:" + failedArr.length); //+ ") skipped: " + skipped + " of total: " + testCount);
         if (passedArr.length > 0) console.log("\n>>> passed: " + passedArr);
         if (failedArr.length > 0) console.log(">>> failed: " + failedArr);
         if (skippedArr.length > 0) console.log(">>> skipped: " + skippedArr);
