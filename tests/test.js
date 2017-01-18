@@ -41,10 +41,10 @@ db.setCredentials('admin', 'admin');
 // only edit here if you want to .........
 
 // fill in the test numbers you want to run
-// testToRun = ['0001'];
+// testToRun = ['0072'];
 
 // run all tests, but not these from testNotToRun
-testNotToRun = ['0065'];
+testNotToRun = ['0083'];
 // testNotToRun = ['0099'];
 
 // run all tests < testMaxToRun
@@ -165,7 +165,7 @@ function doTest(tests, i) {
                         .then(function (data) {
                             if (logger) {
                                 for (let i = 0; i < data.length; i++) {
-                                    console.log(data[i].s.value.toNT() + " " + data[i].s.value.toNT() + " " + data[i].s.value.toNT());
+                                    console.log(data[i].s.value.toNT() + " " + data[i].p.value.toNT() + " " + data[i].o.value.toNT());
                                 }
                                 console.log('Query: ' + sparqlQuery);
                             }

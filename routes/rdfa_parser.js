@@ -95,13 +95,10 @@ const parseRDFa = function (html, base = null, callback) {
 
 function getInitialContext($, base) {
 
-    if (base == null) {
+    if ($('[xml\\:base]').length > 0)
         base = $('[xml\\:base]').prop('xml:base');
-        if (base == undefined)
-            base = $('base').prop('href');
-        if (base == undefined)
-            base = source;
-    }
+    if ($('base').prop('href') != '' && $('base').prop('href') != undefined)
+        base = $('base').prop('href');
 
     let lang = $('[xml\\:lang]').prop('xml:lang');
     if (lang == undefined)
@@ -215,7 +212,7 @@ function processElement($, ts, context) {
     //seq 2
     if (vocabAtt) {
         local_defaultVocabulary = context.getURI(ts, 'vocab');
-        addTriple(context.base.spec, usesVocab, local_defaultVocabulary);
+        addTriple(context.base, usesVocab, local_defaultVocabulary);
     }
     else if (logger) {
         console.log("seq2 is skipped");
@@ -292,6 +289,8 @@ function processElement($, ts, context) {
             } else {
                 if (ts.is(':root')) {
                     local_newSubject = context.parseTermOrCURIEOrAbsURI('');
+                } else if ((inHTMLMode) && (ts.is("head") || ts.is("body"))) {
+                    local_newSubject = context.base;
                 } else if (typeofAtt) {
                     local_newSubject = rdf.environment.createBlankNode();
                 } else if (context.parentObject) {
