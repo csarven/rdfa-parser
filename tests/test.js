@@ -41,15 +41,15 @@ db.setCredentials('admin', 'admin');
 // only edit here if you want to .........
 
 // fill in the test numbers you want to run
-testToRun = ['0070'];
+// testToRun = ['0063'];
 
 // run all tests, but not these from testNotToRun
 // testNotToRun = ['0014', '0017', '0033', '0048', '0050'];
 // testNotToRun = ['0099'];
 
 // run all tests < testMaxToRun
-testMinToRun = ['0054'];
-testMaxToRun = ['0070'];
+// testMinToRun = ['0000'];
+// testMaxToRun = ['0300'];
 
 // define special test directory and set ownTest = true
 // path = './own/';
@@ -177,14 +177,14 @@ function doTest(tests, i) {
                                     passedArr.push(testNumber);
                                     if (logger) console.log('passed test: ' + testNumber);
                                     printResult();
-                                    if (i < tests.length) doTest(tests, ++i);
+                                    if (++i < tests.length) doTest(tests, i);
 
                                 })
-                                .catch(function () {
+                                .catch(function (e) {
                                     console.log(e);
                                     failedArr.push(testNumber);
                                     printResult();
-                                    if (i < tests.length) doTest(tests, ++i);
+                                    if (++i < tests.length) doTest(tests, i);
                                 });
                         })
 
@@ -195,7 +195,7 @@ function doTest(tests, i) {
                     console.log(e);
                     failedArr.push(testNumber);
                     printResult();
-                    if (i < tests.length) doTest(tests, ++i);
+                    if (++i < tests.length) doTest(tests, i);
                 });
 
         })
@@ -203,7 +203,7 @@ function doTest(tests, i) {
             console.log('Error: could not empty db');
             failedArr.push(getTestNumber(test));
             printResult();
-            if (i < tests.length) doTest(tests, ++i);
+            if (i++ < tests.length) doTest(tests, i);
         });
 
 

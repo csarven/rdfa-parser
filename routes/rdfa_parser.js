@@ -38,7 +38,7 @@ const XMLLiteralURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#XMLLiteral";
 const HTMLLiteralURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#HTML";
 const objectURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#object";
 
-const logger = false;
+const logger = true;
 
 let triples = [];
 
@@ -501,7 +501,7 @@ function processElement($, ts, context) {
         let values = context.getURI(ts, 'property');
 
         for (let i = 0; i < values.length; i++) {
-            let predicate = context.parsePredicate(ts.prop('property'));
+            let predicate = context.parsePredicate(values[i]);
 
             if (predicate) {
                 if (inlistAtt) {

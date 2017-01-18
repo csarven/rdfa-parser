@@ -1,5 +1,6 @@
 {
   "context": {
+    "": "http://www.w3.org/1999/xhtml/vocab#",
     "ccsvw": "http://www.w3.org/ns/csvw#",
     "dcat": "http://www.w3.org/ns/dcat#",
     "qb": "http://purl.org/linked-data/cube#",

@@ -127,7 +127,7 @@ class Context {
             }
         }
         if (absURIRE.exec(value)) {
-            return this.resolveAndNormalize(base, value);
+            return this.resolveAndNormalize(value);
         }
         return null;
     }
