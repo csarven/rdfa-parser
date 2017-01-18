@@ -51,12 +51,12 @@ let triples = [];
  */
 function addTriple(sub, pre, obj) {
 
-    if (!(sub instanceof rdf.BlankNode))
+    if (sub.nodeType() != 'BlankNode')
         sub = rdf.environment.createNamedNode(sub);
 
     pre = rdf.environment.createNamedNode(pre);
 
-    if (!(obj instanceof rdf.BlankNode || obj instanceof rdf.Literal))
+    if (obj.nodeType() != 'BlankNode' && !(obj instanceof rdf.Literal))
         obj = rdf.environment.createNamedNode(obj);
 
     let triple = rdf.environment.createTriple(sub, pre, obj);
@@ -359,7 +359,6 @@ function processElement($, ts, context) {
                 id = local_currentObjectResource;
             }
             console.log("TODO - setting new subject origin ...");
-            // var snode = rdf.create
         }
     }
 
@@ -369,7 +368,10 @@ function processElement($, ts, context) {
         let values = Context.tokenize(typeofAtt);
         if (values) {
             for (let i = 0; i < values.length; i++) {
-                addTriple(local_typedResource, typeURI, values[i]);
+                let object = context.parseTermOrCURIEOrAbsURI(values[i]);
+                if (object) {
+                    addTriple(local_typedResource, typeURI, object);
+                }
             }
         }
     }
@@ -485,7 +487,7 @@ function processElement($, ts, context) {
 
         }
         if (!datatype) {
-            if (typeofAtt && !aboutAtt) {
+            if (typeofAtt && aboutAtt != '') {
                 datatype = objectURI;
                 content = local_typedResource;
             } else {
