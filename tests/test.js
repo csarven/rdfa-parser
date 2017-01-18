@@ -41,15 +41,15 @@ db.setCredentials('admin', 'admin');
 // only edit here if you want to .........
 
 // fill in the test numbers you want to run
-// testToRun = ['0063'];
+// testToRun = ['0001'];
 
 // run all tests, but not these from testNotToRun
-// testNotToRun = ['0014', '0017', '0033', '0048', '0050'];
+testNotToRun = ['0065'];
 // testNotToRun = ['0099'];
 
 // run all tests < testMaxToRun
-// testMinToRun = ['0000'];
-// testMaxToRun = ['0300'];
+testMinToRun = ['0000'];
+testMaxToRun = ['9999'];
 
 // define special test directory and set ownTest = true
 // path = './own/';
@@ -144,9 +144,7 @@ function doTest(tests, i) {
             let html = getHTML(test);
             let base = "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/" + testNumber + ".html";
 
-            let triples = rdfaParser.parseRDFa(
-                html,
-                base);
+            let triples = rdfaParser.parseRDFa(html, base);
 
             if (ownTest)
                 return;
@@ -199,11 +197,11 @@ function doTest(tests, i) {
                 });
 
         })
-        .catch(function () {
-            console.log('Error: could not empty db');
+        .catch(function (err) {
+            console.log('Error: ' + err);
             failedArr.push(getTestNumber(test));
             printResult();
-            if (i++ < tests.length) doTest(tests, i);
+            if (++i < tests.length) doTest(tests, i);
         });
 
 
@@ -313,11 +311,10 @@ function printResult() {
         let skipped = testCount - done;
 
         console.log("=====================================================================");
-    console.log("Tried " + done + " tests (passed:" + passedArr.length + " || failed:" + failedArr.length); //+ ") skipped: " + skipped + " of total: " + testCount);
+    console.log("Tried " + done + " tests (passed:" + passedArr.length + " || failed:" + failedArr.length + ")");
         if (passedArr.length > 0) console.log("\n>>> passed: " + passedArr);
         if (failedArr.length > 0) console.log(">>> failed: " + failedArr);
         if (skippedArr.length > 0) console.log(">>> skipped: " + skippedArr);
-        if (skipped != skippedArr.length) console.log("oha");
         console.log("=====================================================================");
     // }
 }

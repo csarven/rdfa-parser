@@ -498,8 +498,8 @@ function processElement($, ts, context) {
                 }
             }
         }
-        let values = context.getURI(ts, 'property');
 
+        let values = context.getURI(ts, 'property');
         for (let i = 0; i < values.length; i++) {
             let predicate = context.parsePredicate(values[i]);
 
