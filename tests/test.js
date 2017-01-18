@@ -36,7 +36,7 @@ let ownTest = false;
 const db_name = 'test_db';
 const db = new stardog.Connection();
 db.setEndpoint('http://localhost:5820/');
-db.setCredentials('tester', 'tester');
+db.setCredentials('admin', 'admin');
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 // only edit here if you want to .........
 
