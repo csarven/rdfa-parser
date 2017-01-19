@@ -288,7 +288,7 @@ function processElement($, ts, context) {
                 local_newSubject = context.getURI(ts, 'src');
             } else {
                 if (ts.is(':root')) {
-                    local_newSubject = context.parseTermOrCURIEOrAbsURI('');
+                    local_newSubject = context.parseTermOrCURIEOrAbsURI(context.base);
                 } else if ((inHTMLMode) && (ts.is("head") || ts.is("body"))) {
                     local_newSubject = context.base;
                 } else if (typeofAtt) {
