@@ -22,7 +22,7 @@
 'use strict';
 
 
-const logger = true;
+const logger = false;
 
 let triples = [];
 
@@ -99,6 +99,8 @@ function addTriple(sub, pre, obj) {
  * @param callback
  */
 const parseRDFa = function (html, base = null, callback) {
+
+    triples = [];
 
     rdf.setBuiltins();
 
@@ -276,7 +278,7 @@ function processElement($, ts, context) {
             if (aboutAtt) {
                 local_newSubject = context.getURI(ts, 'about');
             } else if (ts.is(':root')) {
-                local_newSubject = context.parseTermOrCURIEOrAbsURI('');
+                local_newSubject = context.parseTermOrCURIEOrAbsURI(context.base);
             } else if (context.parentObject != null) {
                 local_newSubject = context.parentObject;
             }
@@ -518,7 +520,7 @@ function processElement($, ts, context) {
                 datatype = objectURI;
                 content = local_typedResource;
             } else {
-                content = ts.text().trim();
+                content = ts.text(); //.trim();
                 if(inHTMLMode && ts.is('time')) {
                     datatype = deriveDateTimeType(content);
                 }
