@@ -30,7 +30,7 @@ let testMinToRun = ['0000'];
 let testToRun = [];
 let testNotToRun = [];
 
-let path = './cache/html5/';
+let path = './cache/html5_lite/';
 let ownTest = false;
 
 const db_name = 'test_db';
@@ -41,10 +41,10 @@ db.setCredentials('admin', 'admin');
 // only edit here if you want to .........
 
 // fill in the test numbers you want to run
-// testToRun = ['0072'];
+testToRun = ['0140'];
 
 // run all tests, but not these from testNotToRun
-testNotToRun = ['0083'];
+testNotToRun = ['0065'];
 // testNotToRun = ['0099'];
 
 // run all tests < testMaxToRun
