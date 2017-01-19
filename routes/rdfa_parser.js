@@ -22,7 +22,7 @@
 'use strict';
 
 
-const logger = false;
+const logger = true;
 
 let triples = [];
 
@@ -387,6 +387,7 @@ function processElement($, ts, context) {
             if (typeofAtt && !aboutAtt && !resourceAtt && local_currentObjectResource) {
                 id = local_currentObjectResource;
             }
+            // TODO
             console.log("TODO - setting new subject origin ...");
         }
     }

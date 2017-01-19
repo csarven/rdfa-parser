@@ -41,15 +41,15 @@ db.setCredentials('admin', 'admin');
 // only edit here if you want to .........
 
 // fill in the test numbers you want to run
-testToRun = ['0214'];
+testToRun = ['0321'];
 
 // run all tests, but not these from testNotToRun
-testNotToRun = ['0140', '0263', '0264'];
+testNotToRun = ['0140', '0263', '0264', '0301', '0311'];
 // testNotToRun = ['0099'];
 
 // run all tests < testMaxToRun
 // testMinToRun = ['0000'];
-testMaxToRun = ['0300'];
+// testMaxToRun = ['0350'];
 
 // define special test directory and set ownTest = true
 // path = './own/';
