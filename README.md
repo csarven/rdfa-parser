@@ -6,3 +6,7 @@ https://docs.google.com/presentation/d/1CJmV5xhEf7Nbu7XPuQb4Kb2ZhCCbTpilCIdOeqPy
 RDF-Core-Sequence: https://www.w3.org/TR/rdfa-syntax/#s_sequence
 
 RDF-Interface: https://www.w3.org/TR/rdf-interfaces/#idl-def-RDFNode
+
+# Known Issues:
+
+0263 and 0264 -> tripple is added incorrectly (error must be in 'addTriple')

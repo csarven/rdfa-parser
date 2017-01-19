@@ -41,15 +41,15 @@ db.setCredentials('admin', 'admin');
 // only edit here if you want to .........
 
 // fill in the test numbers you want to run
-testToRun = ['0140'];
+testToRun = ['0272'];
 
 // run all tests, but not these from testNotToRun
-testNotToRun = ['0065'];
+testNotToRun = ['0140', '0263', '0264'];
 // testNotToRun = ['0099'];
 
 // run all tests < testMaxToRun
-testMinToRun = ['0000'];
-testMaxToRun = ['9999'];
+// testMinToRun = ['0000'];
+testMaxToRun = ['0300'];
 
 // define special test directory and set ownTest = true
 // path = './own/';
@@ -121,7 +121,7 @@ function doTest(tests, i) {
 
                 })
 
-                .catch(function (e) {
+                .catch(function () {
                     console.log('Could not insert triples');
                     failedArr.push(testNumber);
                     printResult();
@@ -252,6 +252,7 @@ function insertTriples(triples) {
                 if (!response || response.statusCode != 200) {
                     reject('ERROR could not insert triples: \n\t' + data);
                 } else {
+                    console.log("Insert Query: " + q);
                     resolve();
                 }
             }

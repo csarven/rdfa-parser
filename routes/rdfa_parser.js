@@ -21,6 +21,12 @@
 
 'use strict';
 
+
+const logger = true;
+
+let triples = [];
+
+
 const request = require('request');
 const cheerio = require('cheerio');
 const fs = require('fs');
@@ -38,10 +44,32 @@ const XMLLiteralURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#XMLLiteral";
 const HTMLLiteralURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#HTML";
 const objectURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#object";
 
-const logger = true;
+const dateTimeTypes = [
+    { pattern: /-?P(?:[0-9]+Y)?(?:[0-9]+M)?(?:[0-9]+D)?(?:T(?:[0-9]+H)?(?:[0-9]+M)?(?:[0-9]+(?:\.[0-9]+)?S)?)?/,
+        type: "http://www.w3.org/2001/XMLSchema#duration" },
+    { pattern: /-?(?:[1-9][0-9][0-9][0-9]|0[1-9][0-9][0-9]|00[1-9][0-9]|000[1-9])-[0-9][0-9]-[0-9][0-9]T(?:[0-1][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9](?:\.[0-9]+)?(?:Z|[+\-][0-9][0-9]:[0-9][0-9])?/,
+        type: "http://www.w3.org/2001/XMLSchema#dateTime" },
+    { pattern: /-?(?:[1-9][0-9][0-9][0-9]|0[1-9][0-9][0-9]|00[1-9][0-9]|000[1-9])-[0-9][0-9]-[0-9][0-9](?:Z|[+\-][0-9][0-9]:[0-9][0-9])?/,
+        type: "http://www.w3.org/2001/XMLSchema#date" },
+    { pattern: /(?:[0-1][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9](?:\.[0-9]+)?(?:Z|[+\-][0-9][0-9]:[0-9][0-9])?/,
+        type: "http://www.w3.org/2001/XMLSchema#time" },
+    { pattern: /-?(?:[1-9][0-9][0-9][0-9]|0[1-9][0-9][0-9]|00[1-9][0-9]|000[1-9])-[0-9][0-9]/,
+        type: "http://www.w3.org/2001/XMLSchema#gYearMonth" },
+    { pattern: /-?[1-9][0-9][0-9][0-9]|0[1-9][0-9][0-9]|00[1-9][0-9]|000[1-9]/,
+        type: "http://www.w3.org/2001/XMLSchema#gYear" }
+];
 
-let triples = [];
-
+function deriveDateTimeType(value) {
+    for (var i=0; i<dateTimeTypes.length; i++) {
+        //console.log("Checking "+value+" against "+RDFaProcessor.dateTimeTypes[i].type);
+        var matched = dateTimeTypes[i].pattern.exec(value);
+        if (matched && matched[0].length==value.length) {
+            //console.log("Matched!");
+            return dateTimeTypes[i].type;
+        }
+    }
+    return null;
+}
 
 /**
  * adds a Triple to the Graph
@@ -464,10 +492,10 @@ function processElement($, ts, context) {
         } else if (contentAtt) {
             datatype = PlainLiteralURI;
             content = ts.prop('content')
-        } else if (datetimeAtt) { // TODO
+        } else if (datetimeAtt) {
             console.log("TODO - seq11 - datetime");
-            content = context.getURI(ts, 'datetime');
-            // datatype = deriveDateTimeType(content);
+            content = ts.prop('datetime');
+            datatype = deriveDateTimeType(content);
             if (!datatype) {
                 datatype = PlainLiteralURI;
             }
