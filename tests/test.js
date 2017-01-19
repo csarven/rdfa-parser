@@ -41,7 +41,7 @@ db.setCredentials('admin', 'admin');
 // only edit here if you want to .........
 
 // fill in the test numbers you want to run
-testToRun = ['0272'];
+testToRun = ['0277'];
 
 // run all tests, but not these from testNotToRun
 testNotToRun = ['0140', '0263', '0264'];

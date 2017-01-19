@@ -519,7 +519,9 @@ function processElement($, ts, context) {
                 content = local_typedResource;
             } else {
                 content = ts.text().trim();
-                console.log("TODO - seq11 - HTML-Mode");
+                if(inHTMLMode && ts.is('time')) {
+                    datatype = deriveDateTimeType(content);
+                }
                 if (!datatype) {
                     datatype = PlainLiteralURI;
                 }
