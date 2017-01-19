@@ -59,6 +59,83 @@ testMaxToRun = ['9999'];
 logger = true;
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+function doTest(tests, i) {
+
+    let test = tests[i];
+
+    emptyDB(db)
+        .then(function () {
+
+            let testNumber = getTestNumber(test);
+            let html = getHTML(test);
+            let base = "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/" + testNumber + ".html";
+
+            let triples = rdfaParser.parseRDFa(html, base);
+
+            if (ownTest)
+                return;
+
+            insertTriples(triples)
+                .then(function () {
+
+
+                    let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
+                    let sparqlQuery = fs.readFileSync(sparqlFilename, 'utf-8');
+
+                    if (logger) {
+                        console.log('##########################################\n' + 'running test ' + testNumber);
+                        console.log("created " + triples.length + " triples:");
+                    }
+                    // console.log(triplesToString(triples));
+                    getAllTriples(db)
+                        .then(function (data) {
+                            if (logger) {
+                                printDbResponse(data);
+                                // for (let i = 0; i < data.length; i++) {
+                                // console.log(data[i].s.value.toNT() + " " + data[i].p.value.toNT() + " " + data[i].o.value.toNT());
+                                // }
+                                console.log('Query:\n' + sparqlQuery);
+                            }
+
+                            executeQuery(db, sparqlQuery)
+                                .then(function () {
+                                    passedArr.push(testNumber);
+                                    if (logger) console.log('passed test: ' + testNumber);
+                                    printResult();
+                                    if (++i < tests.length) doTest(tests, i);
+
+                                })
+                                .catch(function () {
+                                    console.log('Query returned false');
+                                    failedArr.push(testNumber);
+                                    printResult();
+                                    if (++i < tests.length) doTest(tests, i);
+                                });
+                        })
+                        .catch(function () {
+                            console.log('Could not read triples');
+                            failedArr.push(testNumber);
+                            printResult();
+                            if (++i < tests.length) doTest(tests, i);
+                        });
+
+                })
+
+                .catch(function (e) {
+                    console.log('Could not insert triples');
+                    failedArr.push(testNumber);
+                    printResult();
+                    if (++i < tests.length) doTest(tests, i);
+                });
+
+        })
+        .catch(function (err) {
+            console.log('Error: ' + err);
+            failedArr.push(getTestNumber(test));
+            printResult();
+            if (++i < tests.length) doTest(tests, i);
+        });
+}
 
 function getTestNumber(test) {
     "use strict";
@@ -132,83 +209,6 @@ const getHTML = function (source) {
 
 };
 
-function doTest(tests, i) {
-
-    // for (let i = 0; i < tests.length; i++) {
-    let test = tests[i];
-
-    emptyDB(db)
-        .then(function () {
-
-            let testNumber = getTestNumber(test);
-            let html = getHTML(test);
-            let base = "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/" + testNumber + ".html";
-
-            let triples = rdfaParser.parseRDFa(html, base);
-
-            if (ownTest)
-                return;
-
-            insertTriples(triples)
-                .then(function () {
-
-
-                        let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
-                        let sparqlQuery = fs.readFileSync(sparqlFilename, 'utf-8');
-
-                    if (logger) {
-                        console.log('##########################################\n' + 'running test ' + testNumber);
-                        console.log("created " + triples.length + " triples:");
-                    }
-                    // console.log(triplesToString(triples));
-                    getAllTriples(db)
-                        .then(function (data) {
-                            if (logger) {
-                                for (let i = 0; i < data.length; i++) {
-                                    console.log(data[i].s.value.toNT() + " " + data[i].p.value.toNT() + " " + data[i].o.value.toNT());
-                                }
-                                console.log('Query: ' + sparqlQuery);
-                            }
-
-                            executeQuery(db, sparqlQuery)
-                                .then(function () {
-                                    passedArr.push(testNumber);
-                                    if (logger) console.log('passed test: ' + testNumber);
-                                    printResult();
-                                    if (++i < tests.length) doTest(tests, i);
-
-                                })
-                                .catch(function (e) {
-                                    console.log(e);
-                                    failedArr.push(testNumber);
-                                    printResult();
-                                    if (++i < tests.length) doTest(tests, i);
-                                });
-                        })
-
-
-                })
-
-                .catch(function (e) {
-                    console.log(e);
-                    failedArr.push(testNumber);
-                    printResult();
-                    if (++i < tests.length) doTest(tests, i);
-                });
-
-        })
-        .catch(function (err) {
-            console.log('Error: ' + err);
-            failedArr.push(getTestNumber(test));
-            printResult();
-            if (++i < tests.length) doTest(tests, i);
-        });
-
-
-// }
-
-}
-
 function triplesToString(triples) {
     let retVal = '';
 
@@ -217,13 +217,6 @@ function triplesToString(triples) {
     }
     return retVal
 }
-
-let i = 0;
-// main...
-getTests('.html', function (tests) {
-    doTest(tests, i)
-
-});
 
 function executeQuery(db, sparqlQuery) {
     return new Promise(function (resolve, reject) {
@@ -303,18 +296,54 @@ function emptyDB(db) {
     });
 }
 
-
 function printResult() {
     "use strict";
     // if (testCount == totalTestCount) {
-        let done = passedArr.length + failedArr.length;
-        let skipped = testCount - done;
+    let done = passedArr.length + failedArr.length;
+    let skipped = testCount - done;
 
-        console.log("=====================================================================");
+    console.log("=====================================================================");
     console.log("Tried " + done + " tests (passed:" + passedArr.length + " || failed:" + failedArr.length + ")");
-        if (passedArr.length > 0) console.log("\n>>> passed: " + passedArr);
-        if (failedArr.length > 0) console.log(">>> failed: " + failedArr);
-        if (skippedArr.length > 0) console.log(">>> skipped: " + skippedArr);
-        console.log("=====================================================================");
+    if (passedArr.length > 0) console.log("\n>>> passed: " + passedArr);
+    if (failedArr.length > 0) console.log(">>> failed: " + failedArr);
+    if (skippedArr.length > 0) console.log(">>> skipped: " + skippedArr);
+    console.log("=====================================================================");
     // }
 }
+
+function printDbResponse(results) {
+
+    for (let i = 0; i < results.length; i++) {
+
+        let s, p, o;
+
+        if (results[i].s.type == 'bnode')
+            s = '_:' + results[i].s.value;
+        else
+            s = '<' + results[i].s.value + '>';
+
+        p = '<' + results[i].p.value + '>';
+
+        if (results[i].o.type == 'literal') {
+            o = '"' + results[i].o.value + '"';
+            if (results[i].o.datatype)
+                o += '^^<' + results[i].o.datatype + '>';
+
+        } else if (results[i].o.type == 'bnode') {
+            o = '_:' + results[i].o.value;
+
+        } else {
+            o = '<' + results[i].o.value + '>';
+        }
+        o += ' .';
+
+        console.log('\t' + s + ' ' + p + ' ' + o);
+    }
+}
+
+// main...
+let i = 0;
+getTests('.html', function (tests) {
+    doTest(tests, i)
+
+});
