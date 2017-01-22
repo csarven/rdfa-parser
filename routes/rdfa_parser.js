@@ -12,9 +12,40 @@
 
 
 const logger = true;
-
+//let inHTMLMode = true;
 let triples = [];
 
+function myPredicate () {
+    this.predicate;
+    this.objects = [];
+    this.toString = function () {
+        let ret = this.predicate.toNT() + " ";
+
+        for(let i = 0;i < this.objects.length - 1; i++) {
+            ret += this.objects[i].toNT() + ", ";
+        }
+
+        ret += this.objects[this.objects.length - 1].toNT();
+
+        return ret;
+    }
+}
+
+function myTriple () {
+    this.subject;
+    this.predicates = [];
+    this.toString = function () {
+        let ret = this.subject.toNT();
+
+        for (let i = 0; i < this.predicates.length - 1; i++) {
+            ret += "\t" + this.predicates[i].toString() + ";\n";
+        }
+
+        ret += "\t" + this.predicates[this.predicates.length - 1].toString() + "."
+
+        return ret;
+    }
+}
 
 const request = require('request');
 const cheerio = require('cheerio');
@@ -71,6 +102,103 @@ function deriveDateTimeType(value) {
     return null;
 }
 
+const rdfaCopyPredicate = "http://www.w3.org/ns/rdfa#copy";
+const rdfaPatternType = "http://www.w3.org/ns/rdfa#Pattern";
+
+// GraphRDFaProcessor.prototype.copyProperties = function() {
+//     var copySubjects = [];
+//     var patternSubjects = {};
+//
+//     var subjectList = [];
+//
+//
+//
+//
+//     for (var j = 0; j < triples.length; j++) {
+//         var snode = triples[j].subject;
+//
+//         // if predicate is NOT copy-predicate, continue
+//         if(triples[j] != rdfaCopyPredicate)
+//             continue;
+//         }
+//         // else, push subject (or snode???) to list
+//
+//         copySubjects.push(snode);
+//
+//         for (var i=0; i < pnode.objects.length; i++) {
+//
+//             if (pnode.objects[i].type!=RDFaProcessor.objectURI) {
+//                 continue;
+//             }
+//             var target = pnode.objects[i].value;
+//             var patternSubjectNode = this.target.graph.subjects[target];
+//             if (!patternSubjectNode) {
+//                 continue;
+//             }
+//             var patternTypes = patternSubjectNode.predicates[RDFaProcessor.typeURI];
+//             if (!patternTypes) {
+//                 continue;
+//             }
+//             var isPattern = false;
+//             for (var j=0; j<patternTypes.objects.length && !isPattern; j++) {
+//                 if (patternTypes.objects[j].value==GraphRDFaProcessor.rdfaPatternType &&
+//                     patternTypes.objects[j].type==RDFaProcessor.objectURI) {
+//                     isPattern = true;
+//                 }
+//             }
+//             if (!isPattern) {
+//                 continue;
+//             }
+//             patternSubjects[target] = true;
+//             for (var predicate in patternSubjectNode.predicates) {
+//                 var targetPNode = patternSubjectNode.predicates[predicate];
+//                 if (predicate==RDFaProcessor.typeURI) {
+//                     if (targetPNode.objects.length==1) {
+//                         continue;
+//                     }
+//                     for (var j=0; j<targetPNode.objects.length; j++) {
+//                         if (targetPNode.objects[j].value!=GraphRDFaProcessor.rdfaPatternType) {
+//                             var subjectPNode = snode.predicates[predicate];
+//                             if (!subjectPNode) {
+//                                 subjectPNode = new RDFaPredicate(predicate);
+//                                 snode.predicates[predicate] = subjectPNode;
+//                             }
+//                             subjectPNode.objects.push(
+//                                 { type: targetPNode.objects[j].type,
+//                                     value: targetPNode.objects[j].value,
+//                                     language: targetPNode.objects[j].language,
+//                                     origin: targetPNode.objects[j].origin}
+//                             );
+//                             snode.types.push(targetPNode.objects[j].value);
+//                         }
+//                     }
+//                 } else {
+//                     var subjectPNode = snode.predicates[predicate];
+//                     if (!subjectPNode) {
+//                         subjectPNode = new RDFaPredicate(predicate);
+//                         snode.predicates[predicate] = subjectPNode;
+//                     }
+//                     for (var j=0; j<targetPNode.objects.length; j++) {
+//                         subjectPNode.objects.push(
+//                             { type: targetPNode.objects[j].type,
+//                                 value: targetPNode.objects[j].value,
+//                                 language: targetPNode.objects[j].language,
+//                                 origin: targetPNode.objects[j].origin}
+//                         );
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//     for (var i=0; i<copySubjects.length; i++) {
+//         var snode = this.target.graph.subjects[copySubjects[i]];
+//         delete snode.predicates[GraphRDFaProcessor.rdfaCopyPredicate];
+//     }
+//     for (var subject in patternSubjects) {
+//         delete this.target.graph.subjects[subject];
+//     }
+// }
+
 /**
  * adds a Triple to the Graph
  * @param sub
@@ -79,17 +207,83 @@ function deriveDateTimeType(value) {
  */
 function addTriple(sub, pre, obj) {
 
+    if(true)
+    {
+        addMyTriple(sub, pre, obj);
+        return;
+    }
+
     if (sub.nodeType() != 'BlankNode')
         sub = rdf.environment.createNamedNode(sub);
 
+    // let preList = [];
+    //
+    // for(var i = 0; i < triples.length; i++) {
+    //     if(triples[i].subject.value == sub.value) {
+    //         sub = triples[i];
+    //         preList.push(triples[i].predicate);
+    //         break;
+    //     }
+    // }
+
+
     pre = rdf.environment.createNamedNode(pre);
+    // preList.push(pre);
+
 
     if (obj.nodeType() != 'BlankNode' && !(obj instanceof rdf.Literal))
         obj = rdf.environment.createNamedNode(obj);
 
     let triple = rdf.environment.createTriple(sub, pre, obj);
+    // let triple = rdf.environment.createTriple(sub, preList, obj);
 
     triples.push(triple);
+}
+
+function addMyTriple(sub, pre, obj) {
+
+    if (sub.nodeType() != 'BlankNode')
+        sub = rdf.environment.createNamedNode(sub);
+
+    let triple = new myTriple();
+    let predicate = new myPredicate();
+
+    let newTriple = true;
+    for(var i = 0; i < triples.length; i++) {
+        if(triples[i].subject.equals(sub)) {
+            triple = triples[i];
+            newTriple = false;
+            break;
+        }
+    }
+
+    triple.subject = sub;
+
+    pre = rdf.environment.createNamedNode(pre);
+
+    let newPredicate = true;
+    for(var i = 0; i < triple.predicates.length; i++) {
+        if(triple.predicates[i].predicate.equals(pre)) {
+            predicate = triple.predicates[i];
+            newPredicate = false;
+            break;
+        }
+    }
+
+    if(newPredicate) {
+        predicate.predicate = pre;
+        triple.predicates.push(predicate);
+    }
+
+    if (obj.nodeType() != 'BlankNode' && !(obj instanceof rdf.Literal))
+        obj = rdf.environment.createNamedNode(obj);
+
+    predicate.objects.push(obj);
+
+    // let triple = rdf.environment.createTriple(sub, pre, obj);
+
+    if(newTriple)
+        triples.push(triple);
 }
 
 /**
@@ -113,6 +307,9 @@ const parseRDFa = function (html, base = null, callback) {
         processElement($, ts, ctx);
 
     });
+
+    // if(true) // TODO: check if it is in html mode
+    //     copyProperties();
 
     if (!callback) {
         return triples;

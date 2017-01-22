@@ -38,7 +38,7 @@ db.setCredentials('admin', 'admin');
 // only edit here if you want to .........
 
 // fill in the test numbers you want to run
-// testToRun = ['0266'];
+// testToRun = ['0057'];
 
 // run all tests, but not these from testNotToRun
 testNotToRun = [
@@ -47,7 +47,9 @@ testNotToRun = [
     '0266', '0267', '0268', // reflexivity
     '0301'
 ];
-// testNotToRun = ['0099'];
+
+// rdfa - light
+// testNotToRun = ['0140', '0263', '0264', '0301', '0311'];
 
 // run all tests < testMaxToRun
 testMinToRun = ['0000'];
