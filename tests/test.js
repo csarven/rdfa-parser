@@ -38,10 +38,15 @@ db.setCredentials('admin', 'admin');
 // only edit here if you want to .........
 
 // fill in the test numbers you want to run
-// testToRun = ['0196'];
+// testToRun = ['0266'];
 
 // run all tests, but not these from testNotToRun
-testNotToRun = ['0065', '0176', '0263', '0264', '0301', '0311'];
+testNotToRun = [
+    '0065', '0176', // js
+    '0218', '0219', '0220', '0221', '0224', '0225', // inlist
+    '0266', '0267', '0268', // reflexivity
+    '0301'
+];
 // testNotToRun = ['0099'];
 
 // run all tests < testMaxToRun
@@ -292,7 +297,7 @@ function emptyDB(db) {
                 database: db_name,
                 query: 'DELETE {?s ?p ?o} WHERE {?s ?p ?o}'
             },
-            function (data, response) {
+            function (data) {
                 if (data.boolean) {
                     resolve();
                 } else {
@@ -337,6 +342,9 @@ function printDbResponse(results) {
             if (results[i].o.datatype) {
                 o += '^^<' + results[i].o.datatype + '>';
             }
+            if (results[i].o['xml:lang']) {
+                o += '@' + results[i].o['xml:lang'];
+             }
 
         } else if (results[i].o.type == 'bnode') {
             o = '_:' + results[i].o.value;

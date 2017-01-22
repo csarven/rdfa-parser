@@ -10,13 +10,14 @@ RDF-Interface: https://www.w3.org/TR/rdf-interfaces/#idl-def-RDFNode
 # Known Issues:
 
 ### Containing JavaScript:
+cheerio can't execute js from parsed files. tests:
 0065, 0176
 
-### Strange:
-0214 -> sometimes it works, sometimes it doesn't
+### inlist:
+inlist not yet implemented. tests: 0218
 
 ### Real Issues:
-0263 and 0264 -> tripple is added incorrectly (error must be in 'addTriple')
+0266 0267 0268 -> ?a sameAs ?b <=> ?b sameAs ?a is not true with our test db
 
 0301 -> new Subject origin
 

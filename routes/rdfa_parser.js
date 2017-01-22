@@ -1,6 +1,4 @@
 /**
- * NOTES:
- * initial context not processed -> https://www.w3.org/TR/rdfa-core/#s_initialcontexts
  *
  * @about and @resource support the datatype SafeCURIEorCURIEorIRI - allowing a SafeCURIE, a CURIE, or an IRI.
  * @href and @src are as defined in the Host Language (e.g., XHTML), and support only an IRI.
@@ -8,15 +6,6 @@
  * @datatype supports the datatype TERMorCURIEorAbsIRI - allowing a single Term, CURIE, or Absolute IRI.
  * @property, @typeof, @rel, and @rev support the datatype TERMorCURIEorAbsIRIs - allowing one or more Terms, CURIEs, or Absolute IRIs.
  *
- * old:::
- * ! vocab, resource should always be taken from closest parent
- * ! typeof has to be parsed separately as it can appear w/o property
- *
- * . prefixes needs more work -> remove vocab when prefix used...
- *
- * ? how to handle missing subject? TODO: add url to subject
- * ?    object to subject - on children - oda wie?
- * ? do we have to implement rdfa:copy -> https://www.w3.org/TR/rdfa-primer/#repeated-patterns
  */
 
 'use strict';
@@ -34,7 +23,6 @@ const os = require('os');
 const rdf = require('rdf');
 
 require('./classes.js');
-const rdfaCore = require('./rdfa_core.json');
 const crawler = require('./crawler.js');
 
 const PlainLiteralURI = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral';
@@ -151,6 +139,8 @@ function getInitialContext($, base) {
     if (lang == undefined)
         lang = null;
 
+    delete require.cache[require.resolve('./rdfa_core.json')];
+    let rdfaCore = require('./rdfa_core.json');
     return new Context(
         base,
         base,
@@ -202,7 +192,6 @@ function processElement($, ts, context) {
     let typeofAtt = ts.prop('typeof');
     let propertyAtt = ts.prop('property');
     let datatypeAtt = ts.prop('datatype');
-    // let datetimeAtt = this.inHTMLMode ? ts.prop('datetime') : null;
     let datetimeAtt = ts.prop('datetime');
     let contentAtt = ts.prop('content');
     let aboutAtt = ts.prop('about');
@@ -212,7 +201,6 @@ function processElement($, ts, context) {
     let inlistAtt = ts.prop('inlist');
 
     let inHTMLMode = true;
-
 
     // reference: https://www.w3.org/TR/rdfa-core/#s_sequence
     //seq 1
@@ -268,7 +256,6 @@ function processElement($, ts, context) {
     else if (logger) {
         console.log("seq2 is skipped");
     }
-    // TODO: else statement
 
     // seq 3
     if (prefixAtt) {
@@ -281,7 +268,7 @@ function processElement($, ts, context) {
     // seq 4
     let local_language = $('[xml\\:lang]').prop('xml:lang');
     if (local_language == undefined)
-        local_language = $('lang').prop('href');
+        local_language = ts.prop('lang');
     if (local_language == undefined)
         local_language = context.language;
 
@@ -408,6 +395,7 @@ function processElement($, ts, context) {
             }
             // TODO
             console.log("TODO - setting new subject origin ...");
+
         }
     }
 
@@ -440,14 +428,7 @@ function processElement($, ts, context) {
 // seq 9
     if (local_currentObjectResource) {
         if (relAtt && inlistAtt) {
-            for (let i = 0; i < relAttPredicates.length; i++) {
-                let list = local_listMappings[relAttPredicates[i]];
-                if (!list) {
-                    list = [];
-                    local_listMappings[relAttPredicates[i]] = list;
-                }
-                list.push({type: objectURI, value: local_currentObjectResource});
-            }
+            console.log('Warning: inlist not yet implemented..');
         } else if (relAtt) {
             for (let i = 0; i < relAttPredicates.length; i++) {
                 addTriple(local_newSubject, relAttPredicates[i], local_currentObjectResource);
@@ -563,10 +544,12 @@ function processElement($, ts, context) {
                         console.log("TODO - seq11 - check");
                         addTriple(local_newSubject, predicate, rdf.environment.createLiteral(ts.text(), local_language, datatype));
                     } else {
-                        if (datatype && datatype != PlainLiteralURI)
+                        if (datatype && datatype == objectURI)
+                            addTriple(local_newSubject, predicate, content);
+                        else if (datatype && datatype != PlainLiteralURI)
                             addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content, local_language, datatype));
                         else
-                            addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content));
+                            addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content, local_language, null));
                     }
                 }
             }
@@ -581,7 +564,7 @@ function processElement($, ts, context) {
             let icT = context.incompleteTriples[i];
             if (icT.direction == 'none') {
                 console.log("TODO - seq12 - direction = none");
-                // TODO: wtf?!?
+                // TODO: unclear what to do here
                 // context.incompleteTriples.push(new incompleteTriples(rdf.environment.createLiteral(local_newSubject, local_language, objectURI), icT.predicate, null, 'WTF'))
             } else if (icT.direction == 'forward') {
                 addTriple(context.parentSubject, icT.predicate, local_newSubject);
@@ -597,12 +580,6 @@ function processElement($, ts, context) {
         let ctx;
 
         if (local_skip) {
-            // ctx = $.extend({}, context);
-            // ctx = JSON.parse(JSON.stringify(context));
-            // ctx = jQuery.extend({}, context);
-            // ctx.language = local_language;
-            // ctx.iriMappings = local_iriMappings;
-
             ctx = new Context(
                 context.base,
                 context.parentSubject,
@@ -637,6 +614,7 @@ function processElement($, ts, context) {
 
         processElement($, ths, ctx);
     });
+
     // } catch (err) {
     //     console.error("ERROR: " + err);
     // }
