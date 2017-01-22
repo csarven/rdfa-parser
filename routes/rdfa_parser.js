@@ -11,7 +11,7 @@
 'use strict';
 
 
-const logger = true;
+const logger = false;
 //let inHTMLMode = true;
 let triples = [];
 
@@ -105,99 +105,155 @@ function deriveDateTimeType(value) {
 const rdfaCopyPredicate = "http://www.w3.org/ns/rdfa#copy";
 const rdfaPatternType = "http://www.w3.org/ns/rdfa#Pattern";
 
-// GraphRDFaProcessor.prototype.copyProperties = function() {
-//     var copySubjects = [];
-//     var patternSubjects = {};
-//
-//     var subjectList = [];
-//
-//
-//
-//
-//     for (var j = 0; j < triples.length; j++) {
-//         var snode = triples[j].subject;
-//
-//         // if predicate is NOT copy-predicate, continue
-//         if(triples[j] != rdfaCopyPredicate)
-//             continue;
-//         }
-//         // else, push subject (or snode???) to list
-//
-//         copySubjects.push(snode);
-//
-//         for (var i=0; i < pnode.objects.length; i++) {
-//
-//             if (pnode.objects[i].type!=RDFaProcessor.objectURI) {
-//                 continue;
-//             }
-//             var target = pnode.objects[i].value;
-//             var patternSubjectNode = this.target.graph.subjects[target];
-//             if (!patternSubjectNode) {
-//                 continue;
-//             }
-//             var patternTypes = patternSubjectNode.predicates[RDFaProcessor.typeURI];
-//             if (!patternTypes) {
-//                 continue;
-//             }
-//             var isPattern = false;
-//             for (var j=0; j<patternTypes.objects.length && !isPattern; j++) {
-//                 if (patternTypes.objects[j].value==GraphRDFaProcessor.rdfaPatternType &&
-//                     patternTypes.objects[j].type==RDFaProcessor.objectURI) {
-//                     isPattern = true;
-//                 }
-//             }
-//             if (!isPattern) {
-//                 continue;
-//             }
-//             patternSubjects[target] = true;
-//             for (var predicate in patternSubjectNode.predicates) {
-//                 var targetPNode = patternSubjectNode.predicates[predicate];
-//                 if (predicate==RDFaProcessor.typeURI) {
-//                     if (targetPNode.objects.length==1) {
-//                         continue;
-//                     }
-//                     for (var j=0; j<targetPNode.objects.length; j++) {
-//                         if (targetPNode.objects[j].value!=GraphRDFaProcessor.rdfaPatternType) {
-//                             var subjectPNode = snode.predicates[predicate];
-//                             if (!subjectPNode) {
-//                                 subjectPNode = new RDFaPredicate(predicate);
-//                                 snode.predicates[predicate] = subjectPNode;
-//                             }
-//                             subjectPNode.objects.push(
-//                                 { type: targetPNode.objects[j].type,
-//                                     value: targetPNode.objects[j].value,
-//                                     language: targetPNode.objects[j].language,
-//                                     origin: targetPNode.objects[j].origin}
-//                             );
-//                             snode.types.push(targetPNode.objects[j].value);
-//                         }
-//                     }
-//                 } else {
-//                     var subjectPNode = snode.predicates[predicate];
-//                     if (!subjectPNode) {
-//                         subjectPNode = new RDFaPredicate(predicate);
-//                         snode.predicates[predicate] = subjectPNode;
-//                     }
-//                     for (var j=0; j<targetPNode.objects.length; j++) {
-//                         subjectPNode.objects.push(
-//                             { type: targetPNode.objects[j].type,
-//                                 value: targetPNode.objects[j].value,
-//                                 language: targetPNode.objects[j].language,
-//                                 origin: targetPNode.objects[j].origin}
-//                         );
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//     for (var i=0; i<copySubjects.length; i++) {
-//         var snode = this.target.graph.subjects[copySubjects[i]];
-//         delete snode.predicates[GraphRDFaProcessor.rdfaCopyPredicate];
-//     }
-//     for (var subject in patternSubjects) {
-//         delete this.target.graph.subjects[subject];
-//     }
-// }
+function copyProperties () {
+    var copySubjects = [];
+    var patternSubjects = {};
+
+    for (var j = 0; j < triples.length; j++) {
+        var snode = triples[j];
+        var pnode = null;
+
+        // if predicate is NOT copy-predicate, continue
+        {
+            for (var k = 0; k < snode.predicates.length; k++) {
+                if (snode.predicates[k].predicate.valueOf() == rdfaCopyPredicate)
+                    pnode = snode.predicates[k];
+            }
+            if (!pnode)
+                continue;
+        }
+
+        // else, push subject (or snode???) to list // TODO
+        copySubjects.push(snode.subject);
+
+        // go threw all objects of the actual predicate
+        for (var i=0; i < pnode.objects.length; i++) {
+
+            // if object is NOT objectURI, continue
+            if (pnode.objects[i].datatype != objectURI) {
+                continue;
+            }
+
+            // search all subjects to copy
+            {
+                var target = pnode.objects[i].valueOf();
+                var patternSubjectNode = null;
+                for (var k = 0; k < triples.length; k++) {
+                    if (triples[k].subject.valueOf() == target)
+                        patternSubjectNode = triples[k];
+                }
+
+                if (!patternSubjectNode) {
+                    continue;
+                }
+            }
+
+            // search for all predicates of the 'patternSubjectNode', which have typeURI
+            {
+                var patternTypes = null;
+                for (var k = 0; k < patternSubjectNode.predicates.length; k++) {
+                    if (patternSubjectNode.predicates[k].predicate.valueOf() == typeURI)
+                        patternTypes = patternSubjectNode.predicates[k];
+                }
+
+                if (!patternTypes) {
+                    continue;
+                }
+            }
+
+            // not sure, what is going on here ...
+            // checking if it is a pattern?
+            var isPattern = false;
+            for (var l=0; l < patternTypes.objects.length && !isPattern; l++) {
+
+                // TODO something is wrong here ...
+                if (patternTypes.objects[l].valueOf() == rdfaPatternType) { //&&
+                    // patternTypes.objects[l].type == objectURI) {
+                    isPattern = true;
+                }
+            }
+            if (!isPattern) {
+                continue;
+            }
+
+
+            patternSubjects[target] = true;
+
+            for (var k = 0; k < patternSubjectNode.predicates.length; k++) {
+
+                var targetPNode = patternSubjectNode.predicates[k];
+
+
+
+                if (targetPNode.predicate.valueOf() == typeURI) {
+                    if (targetPNode.objects.length==1) {
+                        continue;
+                    }
+                    for (var l=0; l < targetPNode.objects.length; l++) {
+
+                        // TODO
+                        console.error("TODO - at copy Properties, this is not implemented yet");
+                        return;
+
+                        if (targetPNode.objects[l].value != rdfaPatternType) {
+                            var subjectPNode = snode.predicates[predicate];
+                            if (!subjectPNode) {
+                                subjectPNode = new myPredicate();
+                                snode.predicates.push(subjectPNode);
+                            }
+                            subjectPNode.objects.push(targetPNode.objects[l]);
+                            // snode.types.push(targetPNode.objects[j].value);
+                        }
+
+                    }
+                } else {
+
+                    var subjectPNode = null;
+                    for(var l = 0; l < snode.predicates.length; l++) {
+                        if(snode.predicates[l].predicate.equals(targetPNode))
+                            subjectPNode = snode.predicates[l].predicate;
+                    }
+
+
+
+                    if (!subjectPNode) {
+
+                        // TODO: something is wrong here ...
+                        subjectPNode = targetPNode;
+                        addMyTriple(snode.subject, subjectPNode, null)
+                        // snode.predicates[predicate] = subjectPNode;
+                    }
+                    // for (var l=0; l < targetPNode.objects.length; l++) {
+                    //     subjectPNode.objects.push(targetPNode.objects[l]);
+                    // }
+                }
+            }
+        }
+    }
+
+    // delete copy and pattern triples
+    for (var i=0; i < copySubjects.length; i++) {
+
+        for(var k = 0; k < triples.length; k++) {
+            if(triples[k].subject.equals(copySubjects[i]))
+            {
+                var snode = triples[k];
+                for(l = 0; l < snode.predicates.length; l++) {
+                    if(snode.predicates[l].predicate.valueOf() == rdfaCopyPredicate)
+                        snode.predicates.splice(l, 1);
+                }
+            }
+        }
+
+        // var snode = triples[copySubjects[i]];
+        // delete snode.predicates[rdfaCopyPredicate];
+    }
+
+    // TODO: delete pattern subjects
+    // for (var subject in patternSubjects) {
+    //     delete this.target.graph.subjects[subject];
+    // }
+}
 
 /**
  * adds a Triple to the Graph
@@ -216,26 +272,12 @@ function addTriple(sub, pre, obj) {
     if (sub.nodeType() != 'BlankNode')
         sub = rdf.environment.createNamedNode(sub);
 
-    // let preList = [];
-    //
-    // for(var i = 0; i < triples.length; i++) {
-    //     if(triples[i].subject.value == sub.value) {
-    //         sub = triples[i];
-    //         preList.push(triples[i].predicate);
-    //         break;
-    //     }
-    // }
-
-
     pre = rdf.environment.createNamedNode(pre);
-    // preList.push(pre);
-
 
     if (obj.nodeType() != 'BlankNode' && !(obj instanceof rdf.Literal))
         obj = rdf.environment.createNamedNode(obj);
 
     let triple = rdf.environment.createTriple(sub, pre, obj);
-    // let triple = rdf.environment.createTriple(sub, preList, obj);
 
     triples.push(triple);
 }
@@ -275,12 +317,11 @@ function addMyTriple(sub, pre, obj) {
         triple.predicates.push(predicate);
     }
 
-    if (obj.nodeType() != 'BlankNode' && !(obj instanceof rdf.Literal))
-        obj = rdf.environment.createNamedNode(obj);
-
-    predicate.objects.push(obj);
-
-    // let triple = rdf.environment.createTriple(sub, pre, obj);
+    if(obj) {
+        if (obj.nodeType() != 'BlankNode' && !(obj instanceof rdf.Literal))
+            obj = rdf.environment.createNamedNode(obj);
+        predicate.objects.push(obj);
+    }
 
     if(newTriple)
         triples.push(triple);
@@ -741,12 +782,14 @@ function processElement($, ts, context) {
                         console.log("TODO - seq11 - check");
                         addTriple(local_newSubject, predicate, rdf.environment.createLiteral(ts.text(), local_language, datatype));
                     } else {
+                        // TODO : check old and new version
                         if (datatype && datatype == objectURI)
                             addTriple(local_newSubject, predicate, content);
                         else if (datatype && datatype != PlainLiteralURI)
                             addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content, local_language, datatype));
                         else
                             addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content, local_language, null));
+                        // addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content, local_language, datatype ? datatype : PlainLiteralURI));
                     }
                 }
             }
