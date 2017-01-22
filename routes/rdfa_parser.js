@@ -45,25 +45,37 @@ const HTMLLiteralURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#HTML";
 const objectURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#object";
 
 const dateTimeTypes = [
-    { pattern: /-?P(?:[0-9]+Y)?(?:[0-9]+M)?(?:[0-9]+D)?(?:T(?:[0-9]+H)?(?:[0-9]+M)?(?:[0-9]+(?:\.[0-9]+)?S)?)?/,
-        type: "http://www.w3.org/2001/XMLSchema#duration" },
-    { pattern: /-?(?:[1-9][0-9][0-9][0-9]|0[1-9][0-9][0-9]|00[1-9][0-9]|000[1-9])-[0-9][0-9]-[0-9][0-9]T(?:[0-1][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9](?:\.[0-9]+)?(?:Z|[+\-][0-9][0-9]:[0-9][0-9])?/,
-        type: "http://www.w3.org/2001/XMLSchema#dateTime" },
-    { pattern: /-?(?:[1-9][0-9][0-9][0-9]|0[1-9][0-9][0-9]|00[1-9][0-9]|000[1-9])-[0-9][0-9]-[0-9][0-9](?:Z|[+\-][0-9][0-9]:[0-9][0-9])?/,
-        type: "http://www.w3.org/2001/XMLSchema#date" },
-    { pattern: /(?:[0-1][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9](?:\.[0-9]+)?(?:Z|[+\-][0-9][0-9]:[0-9][0-9])?/,
-        type: "http://www.w3.org/2001/XMLSchema#time" },
-    { pattern: /-?(?:[1-9][0-9][0-9][0-9]|0[1-9][0-9][0-9]|00[1-9][0-9]|000[1-9])-[0-9][0-9]/,
-        type: "http://www.w3.org/2001/XMLSchema#gYearMonth" },
-    { pattern: /-?[1-9][0-9][0-9][0-9]|0[1-9][0-9][0-9]|00[1-9][0-9]|000[1-9]/,
-        type: "http://www.w3.org/2001/XMLSchema#gYear" }
+    {
+        pattern: /-?P(?:[0-9]+Y)?(?:[0-9]+M)?(?:[0-9]+D)?(?:T(?:[0-9]+H)?(?:[0-9]+M)?(?:[0-9]+(?:\.[0-9]+)?S)?)?/,
+        type: "http://www.w3.org/2001/XMLSchema#duration"
+    },
+    {
+        pattern: /-?(?:[1-9][0-9][0-9][0-9]|0[1-9][0-9][0-9]|00[1-9][0-9]|000[1-9])-[0-9][0-9]-[0-9][0-9]T(?:[0-1][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9](?:\.[0-9]+)?(?:Z|[+\-][0-9][0-9]:[0-9][0-9])?/,
+        type: "http://www.w3.org/2001/XMLSchema#dateTime"
+    },
+    {
+        pattern: /-?(?:[1-9][0-9][0-9][0-9]|0[1-9][0-9][0-9]|00[1-9][0-9]|000[1-9])-[0-9][0-9]-[0-9][0-9](?:Z|[+\-][0-9][0-9]:[0-9][0-9])?/,
+        type: "http://www.w3.org/2001/XMLSchema#date"
+    },
+    {
+        pattern: /(?:[0-1][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9](?:\.[0-9]+)?(?:Z|[+\-][0-9][0-9]:[0-9][0-9])?/,
+        type: "http://www.w3.org/2001/XMLSchema#time"
+    },
+    {
+        pattern: /-?(?:[1-9][0-9][0-9][0-9]|0[1-9][0-9][0-9]|00[1-9][0-9]|000[1-9])-[0-9][0-9]/,
+        type: "http://www.w3.org/2001/XMLSchema#gYearMonth"
+    },
+    {
+        pattern: /-?[1-9][0-9][0-9][0-9]|0[1-9][0-9][0-9]|00[1-9][0-9]|000[1-9]/,
+        type: "http://www.w3.org/2001/XMLSchema#gYear"
+    }
 ];
 
 function deriveDateTimeType(value) {
-    for (var i=0; i<dateTimeTypes.length; i++) {
+    for (let i = 0; i < dateTimeTypes.length; i++) {
         //console.log("Checking "+value+" against "+RDFaProcessor.dateTimeTypes[i].type);
-        var matched = dateTimeTypes[i].pattern.exec(value);
-        if (matched && matched[0].length==value.length) {
+        let matched = dateTimeTypes[i].pattern.exec(value);
+        if (matched && matched[0].length == value.length) {
             //console.log("Matched!");
             return dateTimeTypes[i].type;
         }
@@ -125,10 +137,13 @@ const parseRDFa = function (html, base = null, callback) {
 
 function getInitialContext($, base) {
 
-    if ($('[xml\\:base]').length > 0)
-        base = $('[xml\\:base]').prop('xml:base');
-    if ($('base').prop('href') != '' && $('base').prop('href') != undefined)
-        base = $('base').prop('href');
+    let xmlBase = $('[xml\\:base]');
+    let baseTag = $('base');
+
+    if (xmlBase.length > 0)
+        base = xmlBase.prop('xml:base');
+    if (baseTag.prop('href') != '' && baseTag.prop('href') != undefined)
+        base = baseTag.prop('href');
 
     let lang = $('[xml\\:lang]').prop('xml:lang');
     if (lang == undefined)
@@ -241,8 +256,14 @@ function processElement($, ts, context) {
 
     //seq 2
     if (vocabAtt) {
-        local_defaultVocabulary = context.getURI(ts, 'vocab');
-        addTriple(context.base, usesVocab, local_defaultVocabulary);
+        let value = context.getURI(ts, 'vocab');
+        if (value.length > 0) {
+            local_defaultVocabulary = value;
+            addTriple(context.base, usesVocab, local_defaultVocabulary);
+        } else {
+            local_defaultVocabulary = context.defaultVocabulary;
+        }
+
     }
     else if (logger) {
         console.log("seq2 is skipped");
@@ -264,81 +285,8 @@ function processElement($, ts, context) {
     if (local_language == undefined)
         local_language = context.language;
 
-    // seq 5
-    // console.log("rel = " + rel + "/ rev = " + rev);
-
-    if (!relAtt && !revAtt) {
-        // seq 5.1
-        if (propertyAtt && !contentAtt && !datatypeAtt) {
-
-            if (logger) {
-                console.log("seq5.1 is processing ...");
-            }
-
-            if (aboutAtt) {
-                local_newSubject = context.getURI(ts, 'about');
-            } else if (ts.is(':root')) {
-                local_newSubject = context.parseTermOrCURIEOrAbsURI(context.base);
-            } else if (context.parentObject != null) {
-                local_newSubject = context.parentObject;
-            }
-
-            if (typeofAtt) {
-                if (local_newSubject != null || ts.is(':root')) {
-                    local_typedResource = local_newSubject;
-                } else {
-                    if (resourceAtt) {
-                        local_typedResource = context.getURI(ts, 'resource');
-                    } else if (hrefAtt) {
-                        local_typedResource = context.getURI(ts, 'href');
-                    } else if (srcAtt) {
-                        local_typedResource = context.getURI(ts, 'src');
-                    } else {
-                        local_typedResource = rdf.environment.createBlankNode();
-                    }
-                    local_currentObjectResource = local_typedResource;
-                }
-
-            }
-
-            // seq 5.2
-        } else {
-
-            if (logger) {
-                console.log("seq5.2 is processing ...");
-            }
-
-            if (aboutAtt) {
-                local_newSubject = context.getURI(ts, 'about');
-            } else if (resourceAtt) {
-                local_newSubject = context.getURI(ts, 'resource');
-            } else if (hrefAtt) {
-                local_newSubject = context.getURI(ts, 'href');
-            } else if (srcAtt) {
-                local_newSubject = context.getURI(ts, 'src');
-            } else {
-                if (ts.is(':root')) {
-                    local_newSubject = context.parseTermOrCURIEOrAbsURI(context.base);
-                } else if ((inHTMLMode) && (ts.is("head") || ts.is("body"))) {
-                    local_newSubject = context.base;
-                } else if (typeofAtt) {
-                    local_newSubject = rdf.environment.createBlankNode();
-                } else if (context.parentObject) {
-                    local_newSubject = context.parentObject;
-
-                    if (!propertyAtt) { // TODO: seq says, ts.not()
-                        local_skip = true;
-                    }
-                }
-            }
-
-            if (typeofAtt) {
-                local_typedResource = local_newSubject;
-            }
-        }
-
-        // seq 6
-    } else {
+    // seq 6
+    if (relAtt == '' || relAtt || revAtt == '' || revAtt) {
 
         if (logger) {
             console.log("seq6 is processing ...");
@@ -377,6 +325,77 @@ function processElement($, ts, context) {
             local_typedResource = local_newSubject;
         } else if (typeofAtt && !aboutAtt) {
             local_typedResource = local_currentObjectResource;
+        }
+
+    } else {
+        // seq 5
+        if (propertyAtt && !contentAtt && !datatypeAtt) {
+            // seq 5.1
+
+            if (logger) {
+                console.log("seq5.1 is processing ...");
+            }
+
+            if (aboutAtt || aboutAtt == '') {
+                local_newSubject = context.getURI(ts, 'about');
+            } else if (ts.is(':root')) {
+                local_newSubject = context.parseTermOrCURIEOrAbsURI(context.base);
+            } else if (context.parentObject != null) {
+                local_newSubject = context.parentObject;
+            }
+
+            if (typeofAtt) {
+                if (local_newSubject != null || ts.is(':root')) {
+                    local_typedResource = local_newSubject;
+                } else {
+                    if (resourceAtt) {
+                        local_typedResource = context.getURI(ts, 'resource');
+                    } else if (hrefAtt) {
+                        local_typedResource = context.getURI(ts, 'href');
+                    } else if (srcAtt) {
+                        local_typedResource = context.getURI(ts, 'src');
+                    } else {
+                        local_typedResource = rdf.environment.createBlankNode();
+                    }
+                    local_currentObjectResource = local_typedResource;
+                }
+
+            }
+
+        } else {
+            // seq 5.2
+
+            if (logger) {
+                console.log("seq5.2 is processing ...");
+            }
+
+            if (aboutAtt) {
+                local_newSubject = context.getURI(ts, 'about');
+            } else if (resourceAtt) {
+                local_newSubject = context.getURI(ts, 'resource');
+            } else if (hrefAtt) {
+                local_newSubject = context.getURI(ts, 'href');
+            } else if (srcAtt) {
+                local_newSubject = context.getURI(ts, 'src');
+            } else {
+                if (ts.is(':root')) {
+                    local_newSubject = context.parseTermOrCURIEOrAbsURI(context.base);
+                } else if ((inHTMLMode) && (ts.is("head") || ts.is("body"))) {
+                    local_newSubject = context.base;
+                } else if (typeofAtt) {
+                    local_newSubject = rdf.environment.createBlankNode();
+                } else if (context.parentObject) {
+                    local_newSubject = context.parentObject;
+
+                    if (!propertyAtt) { // TODO: seq says, ts.not()
+                        local_skip = true;
+                    }
+                }
+            }
+
+            if (typeofAtt) {
+                local_typedResource = local_newSubject;
+            }
         }
 
     }
@@ -418,7 +437,7 @@ function processElement($, ts, context) {
         console.log("seq8 is skipped");
     }
 
-// seq 9 TODO
+// seq 9
     if (local_currentObjectResource) {
         if (relAtt && inlistAtt) {
             for (let i = 0; i < relAttPredicates.length; i++) {
@@ -487,8 +506,8 @@ function processElement($, ts, context) {
                 content =
                     datatype == XMLLiteralURI || datatype == HTMLLiteralURI
                         ? null
-                        : (ts.is('[content]')
-                                ? ts.prop('content')
+                        : (contentAtt
+                                ? contentAtt
                                 : ts.text().trim()
                         );
             }
@@ -506,7 +525,7 @@ function processElement($, ts, context) {
             if (resourceAtt) {
                 content = context.getURI(ts, 'resource');
             }
-            if (!contentAtt && hrefAtt) {
+            if (!content && hrefAtt) {
                 content = context.getURI(ts, 'href');
             } else if (!contentAtt && srcAtt) {
                 content = context.getURI(ts, 'src');
@@ -517,12 +536,12 @@ function processElement($, ts, context) {
 
         }
         if (!datatype) {
-            if (typeofAtt && aboutAtt != '') {
+            if (typeofAtt && (!aboutAtt && aboutAtt != '')) {
                 datatype = objectURI;
                 content = local_typedResource;
             } else {
-                content = ts.text(); //.trim();
-                if(inHTMLMode && ts.is('time')) {
+                content = ts.text();
+                if (inHTMLMode && ts.is('time')) {
                     datatype = deriveDateTimeType(content);
                 }
                 if (!datatype) {
@@ -542,7 +561,7 @@ function processElement($, ts, context) {
                 } else {
                     if (datatype == XMLLiteralURI || datatype == HTMLLiteralURI) {
                         console.log("TODO - seq11 - check");
-                        addTriple(local_newSubject, predicate, rdf.environment.createLiteral(ts.childNodes, local_language, datatype));
+                        addTriple(local_newSubject, predicate, rdf.environment.createLiteral(ts.text(), local_language, datatype));
                     } else {
                         if (datatype && datatype != PlainLiteralURI)
                             addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content, local_language, datatype));
@@ -563,7 +582,7 @@ function processElement($, ts, context) {
             if (icT.direction == 'none') {
                 console.log("TODO - seq12 - direction = none");
                 // TODO: wtf?!?
-                // context.incompleteTriples.push(new incompleteTriples(local_newSubject, null, null, 'WTF'))
+                // context.incompleteTriples.push(new incompleteTriples(rdf.environment.createLiteral(local_newSubject, local_language, objectURI), icT.predicate, null, 'WTF'))
             } else if (icT.direction == 'forward') {
                 addTriple(context.parentSubject, icT.predicate, local_newSubject);
             } else if (icT.direction == 'reverse') {
@@ -593,7 +612,7 @@ function processElement($, ts, context) {
                 local_language,
                 context.iriMappings,
                 context.termMappings,
-                context.defaultVocabulary
+                local_defaultVocabulary
             )
 
 
@@ -608,18 +627,13 @@ function processElement($, ts, context) {
                         : context.parentSubject,
                 local_incompleteTriples,
                 local_listMappings,
-                local_language, //TODO: current language -> https://www.w3.org/TR/rdfa-core/#T-current-language
+                local_language,
                 local_iriMappings,
                 local_termMappings,
                 local_defaultVocabulary
             );
 
         }
-
-        if (ctx._base === undefined) {
-            console.error("auweia ...");
-        }
-
 
         processElement($, ths, ctx);
     });

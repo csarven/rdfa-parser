@@ -10,6 +10,8 @@ const absURIRE = /[\w\_\-]+:\S+/;
 
 const list_types = ["rel", "rev", "property", "typeof", "role"];
 
+const theOne = "_:" + (new Date()).getTime();
+
 const type_of = {
     "href": "uri",
     "src": "uri",
@@ -26,7 +28,15 @@ const type_of = {
     "role": "TERMorCURIEorAbsURI"
 };
 
-class incompleteTriples extends rdf.Triple {
+const removeHash = function (baseURI) {
+    let hash = baseURI.indexOf("#");
+    if (hash >= 0) {
+        baseURI = baseURI.substring(0, hash);
+    }
+    return baseURI;
+};
+
+class IncompleteTriples extends rdf.Triple {
     constructor(s, p, o, direction) {
         super(s, p, o);
         this._direction = direction;
@@ -39,7 +49,6 @@ class incompleteTriples extends rdf.Triple {
 
 class Context {
 
-
     constructor(base,
                 parentSubject,
                 parentObject,
@@ -50,7 +59,7 @@ class Context {
                 termMappings,
                 defaultVocabulary) {
 
-        this._base = base;
+        this._base = removeHash(base);
         this._parentSubject = parentSubject;
         this._parentObject = parentObject;
         this._incompleteTriples = incompleteTriples;
@@ -59,10 +68,20 @@ class Context {
         this._iriMappings = iriMappings;
         this._termMappings = termMappings;
         this._defaultVocabulary = defaultVocabulary;
+
+    }
+
+
+    set base(value) {
+        this._base = removeHash(value);
     }
 
     get base() {
         return this._base;
+    }
+
+    set defaultVocabulary(value) {
+        this._defaultVocabulary = value;
     }
 
     get defaultVocabulary() {
@@ -98,7 +117,10 @@ class Context {
     }
 
     static trim(str) {
-        return str.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+        if (str)
+            return str.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+        else
+            return '';
     };
 
     static tokenize(str) {
@@ -355,7 +377,7 @@ class Context {
             }
             if (value == "_:") {
                 // the one node
-                return this.theOne;
+                return theOne;
             }
             return this.parseCURIE(value);
         } else {
@@ -434,4 +456,4 @@ class Context {
 }
 
 global.Context = Context;
-global.incompleteTriples = incompleteTriples;
+global.incompleteTriples = IncompleteTriples;

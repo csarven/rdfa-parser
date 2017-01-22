@@ -2,10 +2,6 @@
  *
  * Created by roland on 11/26/16.
  *
- * TODO: somehow, store or graph is safed during more tests ... (clean every time)
- * TODO: program is not stoping ...
- *
- *
  */
 
 const fs = require('fs');
@@ -26,11 +22,12 @@ let skippedArr = [];
 let testCount = 0;
 
 let testMaxToRun = ['9999'];
+let negativeTests = ['0107', '0122', '0140', '0311'];
 let testMinToRun = ['0000'];
 let testToRun = [];
 let testNotToRun = [];
 
-let path = './cache/html5_lite/';
+let path = './cache/html5/';
 let ownTest = false;
 
 const db_name = 'test_db';
@@ -41,15 +38,15 @@ db.setCredentials('admin', 'admin');
 // only edit here if you want to .........
 
 // fill in the test numbers you want to run
-testToRun = ['0321'];
+// testToRun = ['0196'];
 
 // run all tests, but not these from testNotToRun
-testNotToRun = ['0140', '0263', '0264', '0301', '0311'];
+testNotToRun = ['0065', '0176', '0263', '0264', '0301', '0311'];
 // testNotToRun = ['0099'];
 
 // run all tests < testMaxToRun
-// testMinToRun = ['0000'];
-// testMaxToRun = ['0350'];
+testMinToRun = ['0000'];
+testMaxToRun = ['0350'];
 
 // define special test directory and set ownTest = true
 // path = './own/';
@@ -62,6 +59,11 @@ logger = true;
 function doTest(tests, i) {
 
     let test = tests[i];
+
+    if (!test) {
+        console.log('no test to run');
+        return;
+    }
 
     emptyDB(db)
         .then(function () {
@@ -106,8 +108,13 @@ function doTest(tests, i) {
 
                                 })
                                 .catch(function () {
-                                    console.log('Query returned false');
-                                    failedArr.push(testNumber);
+                                    if (negativeTests.indexOf(testNumber) >= 0) {
+                                        if (logger) console.log('passed negative test: ' + testNumber);
+                                        passedArr.push(testNumber);
+                                    } else {
+                                        console.log('failed test: ' + testNumber);
+                                        failedArr.push(testNumber);
+                                    }
                                     printResult();
                                     if (++i < tests.length) doTest(tests, i);
                                 });
@@ -226,9 +233,9 @@ function executeQuery(db, sparqlQuery) {
                 database: db_name,
                 query: sparqlQuery
             }, (data) => {
-                let passed = data.boolean;
+                let result = data.boolean;
 
-                if (passed)
+                if (result)
                     resolve();
                 else
                     reject();
@@ -241,7 +248,7 @@ function executeQuery(db, sparqlQuery) {
 function insertTriples(triples) {
     return new Promise(function (resolve, reject) {
 
-        let q = 'INSERT DATA { ' + triplesToString(triples) + ' }';
+        let q = 'INSERT DATA {\n' + triplesToString(triples) + ' }';
 
         db.query(
             {
@@ -252,7 +259,7 @@ function insertTriples(triples) {
                 if (!response || response.statusCode != 200) {
                     reject('ERROR could not insert triples: \n\t' + data);
                 } else {
-                    console.log("Insert Query: " + q);
+                    console.log("Insert Query:\n" + q);
                     resolve();
                 }
             }
@@ -286,7 +293,7 @@ function emptyDB(db) {
                 query: 'DELETE {?s ?p ?o} WHERE {?s ?p ?o}'
             },
             function (data, response) {
-                if (data.boolean) {;
+                if (data.boolean) {
                     resolve();
                 } else {
                     reject();
@@ -327,8 +334,9 @@ function printDbResponse(results) {
 
         if (results[i].o.type == 'literal') {
             o = '"' + results[i].o.value + '"';
-            if (results[i].o.datatype)
+            if (results[i].o.datatype) {
                 o += '^^<' + results[i].o.datatype + '>';
+            }
 
         } else if (results[i].o.type == 'bnode') {
             o = '_:' + results[i].o.value;

@@ -9,8 +9,8 @@ RDF-Interface: https://www.w3.org/TR/rdf-interfaces/#idl-def-RDFNode
 
 # Known Issues:
 
-###  Negativ tests:
-0140, 0311 -> no triples are generated
+### Containing JavaScript:
+0065, 0176
 
 ### Strange:
 0214 -> sometimes it works, sometimes it doesn't
