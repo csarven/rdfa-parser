@@ -27,7 +27,7 @@ let testMinToRun = ['0000'];
 let testToRun = [];
 let testNotToRun = [];
 
-let path = './cache/html5/';
+let path = './cache/html5_lite/';
 let ownTest = false;
 
 const db_name = 'test_db';
@@ -38,14 +38,15 @@ db.setCredentials('admin', 'admin');
 // only edit here if you want to .........
 
 // fill in the test numbers you want to run
-// testToRun = ['0321'];
+// testToRun = ['0263', '0001', '0321'];
+testToRun = ['0301'];
 
 // run all tests, but not these from testNotToRun
 testNotToRun = [
     '0065', '0176', // js
     '0218', '0219', '0220', '0221', '0224', '0225', // inlist
-    '0266', '0267', '0268', // reflexivity
-    '0301'
+    '0266', '0267', '0268' // reflexivity
+    , '0301'
 ];
 
 // rdfa - light
@@ -53,7 +54,7 @@ testNotToRun = [
 
 // run all tests < testMaxToRun
 // testMinToRun = ['0000'];
-// testMaxToRun = ['0350'];
+// testMaxToRun = ['0321'];
 
 // define special test directory and set ownTest = true
 // path = './own/';

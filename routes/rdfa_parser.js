@@ -130,9 +130,12 @@ function copyProperties () {
         for (var i=0; i < pnode.objects.length; i++) {
 
             // if object is NOT objectURI, continue
-            if (pnode.objects[i].datatype != objectURI) {
+            // if (pnode.objects[i].datatype != objectURI) {
+            //     continue;
+            // }
+
+            if(pnode.objects[i].nodeType() == 'NamedNode') // TODO: is this realy a test, if a node is an object?
                 continue;
-            }
 
             // search all subjects to copy
             {
@@ -167,8 +170,7 @@ function copyProperties () {
             for (var l=0; l < patternTypes.objects.length && !isPattern; l++) {
 
                 // TODO something is wrong here ...
-                if (patternTypes.objects[l].valueOf() == rdfaPatternType) { //&&
-                    // patternTypes.objects[l].type == objectURI) {
+                if (patternTypes.objects[l].valueOf() == rdfaPatternType) { //&& patternTypes.objects[l].type == objectURI) {
                     isPattern = true;
                 }
             }
@@ -214,11 +216,8 @@ function copyProperties () {
                             subjectPNode = snode.predicates[l].predicate;
                     }
 
-
-
                     if (!subjectPNode) {
 
-                        // TODO: something is wrong here ...
                         subjectPNode = targetPNode;
                         addMyTriple(snode.subject, subjectPNode, null)
                         // snode.predicates[predicate] = subjectPNode;
@@ -250,9 +249,12 @@ function copyProperties () {
     }
 
     // TODO: delete pattern subjects
-    // for (var subject in patternSubjects) {
-    //     delete this.target.graph.subjects[subject];
-    // }
+    for (var subject in patternSubjects) {
+        for(var i = 0; i < triples.length; i++) {
+            if(subject.equals(triples[i].subject))
+                triples.splice(i, 1);
+        }
+    }
 }
 
 /**
@@ -301,30 +303,48 @@ function addMyTriple(sub, pre, obj) {
 
     triple.subject = sub;
 
-    pre = rdf.environment.createNamedNode(pre);
+    if(pre instanceof myPredicate) {
+        triple.predicates.push(pre);
+    } else {
+        pre = rdf.environment.createNamedNode(pre);
 
-    let newPredicate = true;
-    for(var i = 0; i < triple.predicates.length; i++) {
-        if(triple.predicates[i].predicate.equals(pre)) {
-            predicate = triple.predicates[i];
-            newPredicate = false;
-            break;
+        let newPredicate = true;
+        for (var i = 0; i < triple.predicates.length; i++) {
+            if (triple.predicates[i].predicate.equals(pre)) {
+                predicate = triple.predicates[i];
+                newPredicate = false;
+                break;
+            }
+        }
+
+        if (newPredicate) {
+            predicate.predicate = pre;
+            triple.predicates.push(predicate);
+        }
+
+        if (obj) {
+            if (obj.nodeType() != 'BlankNode' && !(obj instanceof rdf.Literal))
+                obj = rdf.environment.createNamedNode(obj);
+            predicate.objects.push(obj);
         }
     }
 
-    if(newPredicate) {
-        predicate.predicate = pre;
-        triple.predicates.push(predicate);
-    }
-
-    if(obj) {
-        if (obj.nodeType() != 'BlankNode' && !(obj instanceof rdf.Literal))
-            obj = rdf.environment.createNamedNode(obj);
-        predicate.objects.push(obj);
-    }
 
     if(newTriple)
         triples.push(triple);
+}
+
+function handleObjects() {
+    for(var i = 0; i < triples.length; i++) {
+        for(var j = 0; j < triples[i].predicates.length; j++) {
+            for(var k = 0; k < triples[i].predicates[j].objects.length; k++) {
+                var object = triples[i].predicates[j].objects[k];
+
+                if(object.datatype == PlainLiteralURI || object.datatype == objectURI)
+                    object.datatype = null;
+            }
+        }
+    }
 }
 
 /**
@@ -349,8 +369,11 @@ const parseRDFa = function (html, base = null, callback) {
 
     });
 
-    // if(true) // TODO: check if it is in html mode
-    //     copyProperties();
+    // TODO: check if it is in html mode
+    if(true) {
+        copyProperties();
+        handleObjects();
+    }
 
     if (!callback) {
         return triples;
@@ -789,7 +812,7 @@ function processElement($, ts, context) {
                             addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content, local_language, datatype));
                         else
                             addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content, local_language, null));
-                        // addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content, local_language, datatype ? datatype : PlainLiteralURI));
+                           // addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content, local_language, datatype ? datatype : PlainLiteralURI));
                     }
                 }
             }
