@@ -11,7 +11,7 @@
 'use strict';
 
 
-const logger = false;
+const logger = true;
 //let inHTMLMode = true;
 let triples = [];
 
@@ -509,6 +509,7 @@ function processElement($, ts, context) {
         if (value.length > 0) {
             local_defaultVocabulary = value;
             addTriple(context.base, usesVocab, local_defaultVocabulary);
+            context.defaultVocabulary = local_defaultVocabulary;
         } else {
             local_defaultVocabulary = context.defaultVocabulary;
         }
@@ -655,7 +656,7 @@ function processElement($, ts, context) {
                 id = local_currentObjectResource;
             }
             // TODO
-            console.log("TODO - setting new subject origin ...");
+            console.error("TODO - setting new subject origin ...");
 
         }
     }

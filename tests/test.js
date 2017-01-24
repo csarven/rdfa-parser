@@ -39,14 +39,14 @@ db.setCredentials('admin', 'admin');
 
 // fill in the test numbers you want to run
 // testToRun = ['0263', '0001', '0321'];
-testToRun = ['0301'];
+// testToRun = ['0301'];
 
 // run all tests, but not these from testNotToRun
 testNotToRun = [
     '0065', '0176', // js
     '0218', '0219', '0220', '0221', '0224', '0225', // inlist
     '0266', '0267', '0268' // reflexivity
-    , '0301'
+    // , '0301'
 ];
 
 // rdfa - light
