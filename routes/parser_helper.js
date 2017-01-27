@@ -4,6 +4,7 @@
 
 const fs = require('fs');
 const stardog = require('stardog');
+const request = require('request');
 
 let dbError = 'DB-ERROR'
 const db_name = 'test_db';
@@ -22,31 +23,28 @@ function setLogger(value) {
  * @param source can be URL starting with 'http' or file starting with 'file://' or plain html text
  * @returns {string} html content
  */
-const getHTML = function (source) {
+const getHTML = function (source, callback) {
 
     source = source.trim();
 
     if (source.startsWith('http')) {
-        /*
          request(source, function (error, response, html) {
-         if (!error && response.statusCode == 200) {
-         callback(html);
-         }
+            if (!error && response.statusCode == 200) {
+                callback(html);
+            }
          });
-         */
-        crawler(source, 2, callback);
-
-    } else if (source.startsWith('./')) {
+    } else if (source.startsWith('file:')) {
         //noinspection JSUnresolvedFunction
-        return fs.readFileSync(source, 'utf-8');
-
+        source = source.substring(5, source.length);
+        callback(fs.readFileSync(source, 'utf-8'));
+    } else if (source.startsWith('./')) {
+        callback(fs.readFileSync(source, 'utf-8'));
     } else if (source.startsWith('<') && source.endsWith('>')) {
         // throw new Error('plain html not possible atm..');
-        return source;
+        callback(source);
 
     } else {
         throw new Error('could not detect input format');
-
     }
 };
 
@@ -183,11 +181,11 @@ function getDbResponse(results) {
         }
         o += ' .';
 
-        tmp = '\t' + s + ' ' + p + ' ' + o;
+        tmp = s + ' ' + p + ' ' + o;
 
         retVal += tmp + '\n';
 
-        if(logger) console.log(tmp);
+        if(logger) console.log('\t' + tmp);
     }
 
     if(logger) console.log("\n");

@@ -137,7 +137,7 @@ function copyProperties () {
             //     continue;
             // }
 
-            if(pnode.objects[i].nodeType() == 'NamedNode') // TODO: is this realy a test, if a node is an object?
+            if(pnode.objects[i].nodeType() == 'NamedNode') // TODO: is this really a test, if a node is an object?
                 continue;
 
             // search all subjects to copy
@@ -342,12 +342,6 @@ const parseRDFa = function (html, base = null) {
     }
 
     return triples;
-
-    // if (!callback) {
-    //     return triples;
-    // } else {
-    //     callback(triples);
-    // }
 };
 
 

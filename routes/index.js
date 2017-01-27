@@ -1,8 +1,9 @@
 const express = require('express');
 const rdfaParser = require('../routes/rdfa_parser.js');
 const parser_helper = require('../routes/parser_helper.js');
+const crawler = require('../routes/crawler.js');
 
-// var prefixes = require('./rdfa_core.json');
+parser_helper.setLogger(true);
 
 const router = express.Router();
 
@@ -16,32 +17,63 @@ router.get('/', function (req, res) {
 router.post('/', function (req, res) {
 
     let text = req.body.text;
+    let depth = req.body.depth;
 
     parser_helper.emptyDB()
         .then(function () {
-            let html = parser_helper.getHTML(text);
-            let base = "http://test/.html";
-            let triples = rdfaParser.parseRDFa(html, base);
 
-            parser_helper.insertTriples(triples)
-                .then(function () {
+            text = text.trim();
 
-                    parser_helper.getAllTriples()
-                        .then(function (results) {
-                            res.send(results);
+            if(text.startsWith('http')) {
+
+                depth = 2;
+
+                crawler.myCrawler(text, depth, function (buffer, base) {
+                    parser_helper.getHTML(buffer, function(buf) {
+                        doParse(buf, base, function(out) {
+                            res.send(out);
                         })
-                        .catch(function () {
-                            res.send('could not recieve triples');
-                        });
-                })
-                .catch(function () {
-                    res.send('could not insert triples');
+                    });
+
                 });
+            } else {
+                parser_helper.getHTML(text, function(buf) {
+                    doParse(buf, 'http://parser/this.html', function(out) {
+                        res.send(out);
+                    })
+                });
+            }
 
         })
         .catch(function (err) {
-            res.send('could not empty db');
+            if(err == parser_helper.dbError)
+                res.send('Forgot to start the database?');
+            else
+                res.send(err.message);
         });
 });
+
+
+const doParse = function(html, base, callback) {
+
+    let triples = rdfaParser.parseRDFa(html, base);
+
+    parser_helper.insertTriples(triples)
+        .then(function () {
+
+            parser_helper.getAllTriples()
+                .then(function (results) {
+                    callback(results);
+                })
+                .catch(function () {
+                    callback('could not recieve triples');
+                });
+        })
+        .catch(function () {
+            callback('could not insert triples');
+        });
+};
+
+
 
 module.exports = router;

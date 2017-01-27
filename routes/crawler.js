@@ -7,61 +7,79 @@
  * 								Example: https://docs.omniref.com/js/npm/simplecrawler/0.2.0/symbols/Crawler#tab=Docs
  * 
  */
-var Crawler = require("simplecrawler");
-var cheerio = require('cheerio');			// In finaler version nicht benötigt?
+var Crawler = require("simplecrawler");			
+var parser = require('./crawler_test.js');
 
+//In finaler version nicht benötigt:
+var cheerio = require('cheerio');
+var crawler = null;
+var urls = [];	
 
 /** 
- * Configuration of crawler
+ * Function with same signature as RDFa parser
  * 
- * mConcur	Amount of concurrent (simultaneous) requests (DEFAULT: 5)
- * interv	time between request (interval in milli seconds - DEFAULT: 250)
- * subd		True if sudbomains should be scanned as well (DEFAULT: false)
- * wl		Whitelist (domains, that are to be crawled)
- * bl		Blacklist
+ * Exemplary implementation: load html with cheerio, call callback function
+ * 
  */
-var mConcur = 5;
-var interv = 250;
-var subD = false;						// evtl. als Parameter übergeben? 
-var wl = ['community.uibk.ac.at'];		// evtl. als Parameter übergeben? 
-var bl = ['lfuonline.uibk.ac.at'];		// evtl. als Parameter übergeben? 
-
-
-/**
- * store visited urls from start page
- */
-var urls = [];	// In finaler version nicht benötigt?
+function parseR(html, base = null, callback) {
+    let $ = cheerio.load(html);
+    var title = $('title').text();
+    return callback("base: "+ base + "\ntitle of html to parse: " + title);	
+}
 
 
 /** 
- * Crawl the web from a given start page - only stay on same domain
- * @param 	url_n	URL to start crawling
- * @param	cDepth	Depth of crawler (1 - only given url; 2 - all links in same domain of url; 3 - all links from links in same domain of url; etc.
- * @param 	cb		Callback function: parse RDFa from current html document
- * @return	none
+ * Crawl the web from a given start page and apply RDFa parser on each url/html found
+ * 
+ * Obligatory parameters (all subdomains are allowed to crawl)
+ * @param 	url			URL to start crawling
+ * @param	depth		Depth of crawler (1 - only given url; 2 - all links from url; 3 - all links from all links from url; etc.
+ * @param 	callback	Callback function: parse RDFa from current html document
+ * 
+ * Optional parameters (configure allowed subdomains: white- and black listing
+ * @param	whitelist	Subdomain names, that are allowed to crawl
+ * @param	blacklist	Subdomain names, that are not allowed to crawl
+ * 
+ * @return	none		Applies callback function to the RDFa triple set of each html
  */
-function myCrawler(url, cDepth, cb){
+function myCrawler(url, depth, whitelist = null, blacklist = null, callback){
 	
 	// Set time measure and initialize 'simplecrawler' instance
 	console.time('crawler needed');	
-	var crawler = new Crawler(url);
-	
+	var crawler = new Crawler(url);	
 	
 	// Set crawler configuration
-	crawler.interval = interv; 			
-	crawler.maxConcurrency = mConcur;	
-	crawler.maxDepth = cDepth;				
-
+	crawler.interval = 250; 			
+	crawler.maxConcurrency = 5;	
+	crawler.maxDepth = depth;				
 	
-	// Black- and Whitelisting of (Sub-)Domains
-	crawler.scanSubdomains = subD;		// if "true" -> no blacklisting of subdomains possible
-	crawler.domainWhitelist = wl;	
-	crawler.domainBlacklist = bl; 
 	
+	if(blacklist === null){
+		callback = whitelist;
+		crawler.scanSubdomains = true;
+	} else {
+		crawler.scanSubdomains = false;
+		crawler.domainWhitelist = whitelist;	
+		crawler.domainBlacklist = blacklist; 
+	}
+	crawler.respectRobotsTxt=true;
 	
 	// Fetch conditions for crawler (do not load resources with endings: .xsl, .pdf, etc.) 
+	// Allowing only .html* is not working propperly, if title of html does not include suffix.
 	crawler.addFetchCondition(function(queueItem, referrerQueueItem) {
 		return !queueItem.path.match(/\.xsl$/i);	
+	});
+	crawler.addFetchCondition(function(queueItem, referrerQueueItem) {
+		return !queueItem.path.match(/\.doc$/i);	
+	});
+	crawler.addFetchCondition(function(queueItem, referrerQueueItem) {
+		return !queueItem.path.match(/\.ppt$/i);	
+	});
+	crawler.addFetchCondition(function(queueItem, referrerQueueItem) {
+		return !queueItem.path.match(/\.odt$/i);	
+	});
+	crawler.addFetchCondition(function(queueItem, referrerQueueItem) {
+		return !queueItem.path.match(/\.ods$/i);	
 	});
 	crawler.addFetchCondition(function(queueItem, referrerQueueItem) {
     	return !queueItem.path.match(/\.pdf$/i);	
@@ -76,79 +94,47 @@ function myCrawler(url, cDepth, cb){
     	return !queueItem.path.match(/\.jpg$/i);	
 	});
 	crawler.addFetchCondition(function(queueItem, referrerQueueItem) {
-    	return !queueItem.path.match(/\.png$/i);	
+		return !queueItem.path.match(/\.png$/i);	
 	});
 	crawler.addFetchCondition(function(queueItem, referrerQueueItem) {
     	return !queueItem.path.match(/\.php$/i);	
 	});
-	
-	// Funkt nicht: wenn Dateiendung .html fehlt (vgl. http://www.uibk.ac.at)
-	/*	
-	crawler.addFetchCondition(function(queueItem, referrerQueueItem) {		
-    	return queueItem.path.match(/\.html$/i);	
+	crawler.addFetchCondition(function(queueItem, referrerQueueItem) {
+		return !queueItem.path.match(/\.ttl$/i);	
 	});
-	*/
 	
-	
-	// When crawler is started, print out starting URL
+	// Crawler starts
 	crawler.on('crawlstart', function(){
 		console.log('########################################################################\n');
-		console.log('Start from page: ', url, '\n');	// In finaler version nicht benötigt?
+		console.log('Start from page: ', url, '\n');
 		urls = [];
 	});
 	
-	
-	// In finaler version nicht benötigt (When crawler is finished)?
+	// Crawler ends
 	crawler.on('complete', function(){
 		console.log();
 		console.timeEnd('crawler needed');
 		console.log('Number of pages visited: ', urls.length);
-		console.log('crawler.maxDepth = ', cDepth);
+		console.log('crawler.maxDepth = ', depth);
 		console.log('\nURLs: ');
 		for(var u in urls){
-			console.log( urls[u] );
-		}
-		
-		// Plan B: rdf parsing erst starten, wenn crawler beendet ist
-		 
-	});
-	
-	
-	// For each completed download of url content ('fetchcomplete')
-	crawler.on('fetchcomplete', function(queueItem, responseBuffer, response){
-	
-		// for each queued item 
-		if(queueItem){	
-			
-			// In finaler version nicht benötigt?
-			var $ = cheerio.load(responseBuffer);				// load current html with cheerio
-			var resType = response.headers['content-type'];		// type of resource (text/html, script/javascript, etc.)
-			var title = $('head').find('title').text();			// title of current html document (muss nicht unbedingt vorhanden sein)
-		
-			// In finaler version nicht benötigt (Nur html pages mit Titel parsen)?
-			if( title !== '' ){		
-				
-				// Nur für Variante 1 benötigt
-				urls.push(queueItem.url);	// add current URL to array
-				
-				/** TODO: rdf parsing starten, bei jeder page (In "rdfa_parser.js" bei methode "getHTML")
-				 * 
-				 * ...
-				 * 
-				 * if (source.startsWith('http')) {
-				 * 		myCrawler(source, crawlDepth, callback); 
-				 * }
-				 * 
-				 * ...
-				 * 
-				 */
-				cb( title );	// In finaler Version: "responseBuffer" (current html to load with cheerio module (in RDFa_parser)) anstatt "title"
-				//cb( responseBuffer );
+			if(u !== null){
+				console.log( urls[u] );
 			}
 		}
-	
+		console.log('########################################################################\n\n');
 	});
 	
+	
+	// Each successfully completed URL fetch
+	crawler.on('fetchcomplete', function(queueItem, responseBuffer, response){
+	
+		if(queueItem){
+			urls.push(queueItem.url);					// add current URL to array
+			callback(queueItem.url, url);
+			
+		}		
+	});
 	
 	// Start web crawler
 	crawler.start();
@@ -156,7 +142,10 @@ function myCrawler(url, cDepth, cb){
 }
 
 
+
+
+
 /**
  * Export myCrawler function
  */
-module.exports = myCrawler;
+exports.myCrawler = myCrawler;

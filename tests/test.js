@@ -28,13 +28,12 @@ let testToRun = [];
 let testNotToRun = [];
 
 let path = './cache/html5/';
-let ownTest = false;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 // only edit here if you want to .........
 
 // fill in the test numbers you want to run
-// testToRun = ['0001'];
+// testToRun = ['0301'];
 
 // run all tests, but not these from testNotToRun
 testNotToRun = [
@@ -47,12 +46,8 @@ testNotToRun = [
 // testMinToRun = ['0200'];
 // testMaxToRun = ['0100'];
 
-// define special test directory and set ownTest = true
-// path = './own/';
-// ownTest = true;
-
 // activate logger for tests
-logger = false;
+logger = true;
 parser_helper.setLogger(logger);
 
 // activate logger for parser
@@ -72,54 +67,52 @@ function doTest(tests, i) {
         .then(function () {
 
             let testNumber = getTestNumber(test);
-            let html = parser_helper.getHTML(test);
-            let base = "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/" + testNumber + ".html";
+            parser_helper.getHTML(test, function(html) {
+                let base = "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/" + testNumber + ".html";
 
-            if(logger) console.log('########################################################### ' + 'Test ' + testNumber + ' ###########################################################');
+                if (logger) console.log('########################################################### ' + 'Test ' + testNumber + ' ###########################################################');
 
-            let triples = rdfaParser.parseRDFa(html, base);
+                let triples = rdfaParser.parseRDFa(html, base);
 
-            if (ownTest)
-                return;
+                if (logger) console.log('#################################################################################################################################');
 
-            if(logger) console.log('#################################################################################################################################');
+                parser_helper.insertTriples(triples)
+                    .then(function () {
 
-            parser_helper.insertTriples(triples)
-                .then(function () {
+                        let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
+                        let sparqlQuery = fs.readFileSync(sparqlFilename, 'utf-8');
 
-                    let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
-                    let sparqlQuery = fs.readFileSync(sparqlFilename, 'utf-8');
+                        parser_helper.getAllTriples()
+                            .then(function () {
 
-                    parser_helper.getAllTriples()
-                        .then(function () {
-
-                            parser_helper.executeQuery(sparqlQuery)
-                                .then(function () {
-                                    passedArr.push(testNumber);
-                                    if (logger) console.log('>>> passed test: ' + testNumber);
-                                    next(tests, i);
-
-                                })
-                                .catch(function () {
-                                    if (negativeTests.indexOf(testNumber) >= 0) {
-                                        if (logger) console.log('>>> passed negative test: ' + testNumber);
+                                parser_helper.executeQuery(sparqlQuery)
+                                    .then(function () {
                                         passedArr.push(testNumber);
-                                    } else {
-                                        if(logger) console.log('>>> failed test: ' + testNumber);
-                                        failedArr.push(testNumber);
-                                    }
-                                    next(tests, i);
-                                });
-                        })
-                        .catch(function () {
-                            failedArr.push(getTestNumber(tests[i]));
-                            next(tests, i);
-                        });
-                })
-                .catch(function () {
-                    failedArr.push(getTestNumber(tests[i]));
-                    next(tests, i);
-                });
+                                        if (logger) console.log('>>> passed test: ' + testNumber);
+                                        next(tests, i);
+
+                                    })
+                                    .catch(function () {
+                                        if (negativeTests.indexOf(testNumber) >= 0) {
+                                            if (logger) console.log('>>> passed negative test: ' + testNumber);
+                                            passedArr.push(testNumber);
+                                        } else {
+                                            if (logger) console.log('>>> failed test: ' + testNumber);
+                                            failedArr.push(testNumber);
+                                        }
+                                        next(tests, i);
+                                    });
+                            })
+                            .catch(function () {
+                                failedArr.push(getTestNumber(tests[i]));
+                                next(tests, i);
+                            });
+                    })
+                    .catch(function () {
+                        failedArr.push(getTestNumber(tests[i]));
+                        next(tests, i);
+                    });
+            });
 
         })
         .catch(function (err) {
@@ -153,12 +146,10 @@ function getTests(filter, callback) {
                 if (file.indexOf(filter) >= 0) {
 
                     let testNumber = getTestNumber(file);
-                    if (ownTest ||
-                        ((testToRun.indexOf(testNumber) >= 0 || testToRun.length == 0) &&
+                    if ((testToRun.indexOf(testNumber) >= 0 || testToRun.length == 0) &&
                         testNotToRun.indexOf(testNumber) < 0 &&
                         testNumber <= testMaxToRun &&
-                        testNumber >= testMinToRun)) {
-
+                        testNumber >= testMinToRun) {
                         tests.push(path + file);
                     } else {
                         skippedArr.push(getTestNumber(file));
