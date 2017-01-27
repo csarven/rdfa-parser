@@ -417,7 +417,7 @@ class Context {
 
     getURI(element, property) {
 
-        let value = element.prop(property);
+        let value = element.prop(property).trim().replace(/\s/g, '');
 
         if (list_types.indexOf(property) >= 0) {
 
