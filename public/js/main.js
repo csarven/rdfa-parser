@@ -54,7 +54,9 @@ $(document).ready(function () {
                 depth: $('#depthField').val()
             },
             function (response) {
-                $('#outputField').text(response);
+                let outField = $('#outputField');
+                let txt = outField.text().trim();
+                outField.text(txt + "\n" + response);
             }
         );
     }
