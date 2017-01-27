@@ -14,6 +14,7 @@ rdf.setBuiltins();
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 // DO NOT EDIT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 let logger = false;
+let dbError = 'DB-ERROR';
 
 let totalTestCount = 170;
 let passedArr = [];
@@ -27,7 +28,7 @@ let testMinToRun = ['0000'];
 let testToRun = [];
 let testNotToRun = [];
 
-let path = './cache/html5_lite/';
+let path = './cache/html5/';
 let ownTest = false;
 
 const db_name = 'test_db';
@@ -38,30 +39,29 @@ db.setCredentials('admin', 'admin');
 // only edit here if you want to .........
 
 // fill in the test numbers you want to run
-// testToRun = ['0263', '0001', '0321'];
-// testToRun = ['0301'];
+// testToRun = ['0065'];
 
 // run all tests, but not these from testNotToRun
 testNotToRun = [
-    '0065', '0176', // js
-    '0218', '0219', '0220', '0221', '0224', '0225', // inlist
-    '0266', '0267', '0268' // reflexivity
-    // , '0301'
+    '0065', '0176' // js
+    ,'0218', '0219', '0220', '0221', '0224', '0225' // inlist
+    ,'0266', '0267', '0268' // reflexivity
 ];
 
-// rdfa - light
-// testNotToRun = ['0140', '0263', '0264', '0301', '0311'];
 
 // run all tests < testMaxToRun
-// testMinToRun = ['0000'];
-// testMaxToRun = ['0321'];
+// testMinToRun = ['0200'];
+// testMaxToRun = ['0000'];
 
 // define special test directory and set ownTest = true
 // path = './own/';
 // ownTest = true;
 
 // activate logger for tests
-logger = true;
+logger = false;
+
+// activate logger for parser
+rdfaParser.setLogger(false);
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function doTest(tests, i) {
@@ -80,76 +80,66 @@ function doTest(tests, i) {
             let html = getHTML(test);
             let base = "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/" + testNumber + ".html";
 
+            if(logger) console.log('########################################################### ' + 'Test ' + testNumber + ' ###########################################################');
+
             let triples = rdfaParser.parseRDFa(html, base);
 
             if (ownTest)
                 return;
 
+            if(logger) console.log('#################################################################################################################################');
+
             insertTriples(triples)
                 .then(function () {
-
 
                     let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
                     let sparqlQuery = fs.readFileSync(sparqlFilename, 'utf-8');
 
-                    if (logger) {
-                        console.log('##########################################\n' + 'running test ' + testNumber);
-                        console.log("created " + triples.length + " triples:");
-                    }
-                    // console.log(triplesToString(triples));
                     getAllTriples(db)
-                        .then(function (data) {
-                            if (logger) {
-                                printDbResponse(data);
-                                // for (let i = 0; i < data.length; i++) {
-                                // console.log(data[i].s.value.toNT() + " " + data[i].p.value.toNT() + " " + data[i].o.value.toNT());
-                                // }
-                                console.log('Query:\n' + sparqlQuery);
-                            }
+                        .then(function () {
 
                             executeQuery(db, sparqlQuery)
                                 .then(function () {
                                     passedArr.push(testNumber);
-                                    if (logger) console.log('passed test: ' + testNumber);
-                                    printResult();
-                                    if (++i < tests.length) doTest(tests, i);
+                                    if (logger) console.log('>>> passed test: ' + testNumber);
+                                    next(tests, i);
 
                                 })
                                 .catch(function () {
                                     if (negativeTests.indexOf(testNumber) >= 0) {
-                                        if (logger) console.log('passed negative test: ' + testNumber);
+                                        if (logger) console.log('>>> passed negative test: ' + testNumber);
                                         passedArr.push(testNumber);
                                     } else {
-                                        console.log('failed test: ' + testNumber);
+                                        if(logger) console.log('>>> failed test: ' + testNumber);
                                         failedArr.push(testNumber);
                                     }
-                                    printResult();
-                                    if (++i < tests.length) doTest(tests, i);
+                                    next(tests, i);
                                 });
                         })
                         .catch(function () {
-                            console.log('Could not read triples');
-                            failedArr.push(testNumber);
-                            printResult();
-                            if (++i < tests.length) doTest(tests, i);
+                            failedArr.push(getTestNumber(tests[i]));
+                            next(tests, i);
                         });
-
                 })
-
                 .catch(function () {
-                    console.log('Could not insert triples');
-                    failedArr.push(testNumber);
-                    printResult();
-                    if (++i < tests.length) doTest(tests, i);
+                    failedArr.push(getTestNumber(tests[i]));
+                    next(tests, i);
                 });
 
         })
         .catch(function (err) {
-            console.log('Error: ' + err);
-            failedArr.push(getTestNumber(test));
-            printResult();
-            if (++i < tests.length) doTest(tests, i);
-        });
+            if(!err.equals(dbError)) {
+                failedArr.push(getTestNumber(tests[i]));
+                console.error(err);
+                next(tests, i);
+            }
+        })
+}
+
+function next(tests, i) {
+    "use strict";
+    if (++i < tests.length) doTest(tests, i);
+    else printResult();
 }
 
 function getTestNumber(test) {
@@ -163,8 +153,8 @@ function getTests(filter, callback) {
     fs.readdir(path, (err, files) => {
 
         if (err) {
-            console.error("Could not find files! Maybe you forgot to download the test-files?");
-            console.error(">>> run download-html5.sh");
+            console.error('Could not find files! Maybe you forgot to download the test-files?');
+            console.error('>>> run download-html5.sh');
         } else {
             files.forEach(file => {
                 if (file.indexOf(filter) >= 0) {
@@ -234,6 +224,8 @@ function triplesToString(triples) {
 }
 
 function executeQuery(db, sparqlQuery) {
+    if(logger) console.log(sparqlQuery);
+
     return new Promise(function (resolve, reject) {
         // execute query
         db.query(
@@ -247,7 +239,6 @@ function executeQuery(db, sparqlQuery) {
                     resolve();
                 else
                     reject();
-
             }
         );
     });
@@ -256,7 +247,7 @@ function executeQuery(db, sparqlQuery) {
 function insertTriples(triples) {
     return new Promise(function (resolve, reject) {
 
-        let q = 'INSERT DATA {\n' + triplesToString(triples) + ' }';
+        let q = 'INSERT DATA {\n\t' + triplesToString(triples) + ' }';
 
         db.query(
             {
@@ -267,7 +258,10 @@ function insertTriples(triples) {
                 if (!response || response.statusCode != 200) {
                     reject('ERROR could not insert triples: \n\t' + data);
                 } else {
-                    console.log("Insert Query:\n" + q);
+                    if(logger) {
+                        console.log(q + '\n');
+                        console.log('>>> Created ' + triples.length + ' triple(s)');
+                    }
                     resolve();
                 }
             }
@@ -280,12 +274,14 @@ function getAllTriples(db) {
         db.query(
             {
                 database: db_name,
-                query: 'SELECT * { ?s ?p ?o }',
+                query: 'SELECT * { ?s ?p ?o}',
                 limit: 100
             }, function (data, response) {
                 if (response.statusCode == 200) {
-                    resolve(data.results.bindings);
+                    if (logger) printDbResponse(data.results.bindings);
+                    resolve();
                 } else {
+                    if(logger) console.error('Could not read triples');
                     reject();
                 }
             });
@@ -304,30 +300,40 @@ function emptyDB(db) {
                 if (data.boolean) {
                     resolve();
                 } else {
-                    reject();
+                    console.error('Could not empty db!');
+                    console.error('Maybe you forgot to start the database?');
+                    console.error('>>> run run_server.sh');
+                    reject(dbError);
                 }
             }
         );
-
     });
 }
 
 function printResult() {
     "use strict";
-    // if (testCount == totalTestCount) {
     let done = passedArr.length + failedArr.length;
     let skipped = testCount - done;
 
-    console.log("=====================================================================");
-    console.log("Tried " + done + " tests (passed:" + passedArr.length + " || failed:" + failedArr.length + ")");
-    if (passedArr.length > 0) console.log("\n>>> passed: " + passedArr);
-    if (failedArr.length > 0) console.log(">>> failed: " + failedArr);
-    if (skippedArr.length > 0) console.log(">>> skipped: " + skippedArr);
-    console.log("=====================================================================");
-    // }
+    console.log('=====================================================================');
+    console.log('Tried ' + done + ' tests (passed:' + passedArr.length + ' || failed:' + failedArr.length + ' || skipped: ' + skippedArr.length + ')');
+
+    process.stdout.write('\n>>> passed:\t\t');
+    for(let i = 0; i < passedArr.length - 1; i++) {
+        if((i % 20) == 0 && i != 0) process.stdout.write('\n\t\t\t\t');
+        process.stdout.write(passedArr[i] + ',');
+    }
+
+    process.stdout.write(passedArr[passedArr.length-1] + '\n');
+    
+    if (failedArr.length > 0) console.log('\n>>> failed:\t\t' + failedArr);
+    if (skippedArr.length > 0) console.log('\n>>> skipped:\t' + skippedArr);
+    console.log('=====================================================================');
 }
 
 function printDbResponse(results) {
+
+    console.log('>>> Database-state: ');
 
     for (let i = 0; i < results.length; i++) {
 
@@ -359,6 +365,8 @@ function printDbResponse(results) {
 
         console.log('\t' + s + ' ' + p + ' ' + o);
     }
+
+    console.log("\n");
 }
 
 // main...

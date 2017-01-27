@@ -10,14 +10,27 @@
 
 'use strict';
 
+const request = require('request');
+const cheerio = require('cheerio');
+const fs = require('fs');
+const os = require('os');
+const rdf = require('rdf');
 
-const logger = true;
-//let inHTMLMode = true;
+require('./classes.js');
+const crawler = require('./crawler.js');
+
+const INHTMLMODE = true;
+
+let logger = false;
+function setLogger(value) {
+    logger = value;
+}
+
 let triples = [];
-
 function myPredicate () {
     this.predicate;
     this.objects = [];
+
     this.toString = function () {
         let ret = this.predicate.toNT() + " ";
 
@@ -34,6 +47,7 @@ function myPredicate () {
 function myTriple () {
     this.subject;
     this.predicates = [];
+
     this.toString = function () {
         let ret = this.subject.toNT();
 
@@ -47,21 +61,15 @@ function myTriple () {
     }
 }
 
-const request = require('request');
-const cheerio = require('cheerio');
-const fs = require('fs');
-const os = require('os');
-const rdf = require('rdf');
-
-require('./classes.js');
-const crawler = require('./crawler.js');
-
 const PlainLiteralURI = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral';
 const typeURI = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
 const usesVocab = 'http://www.w3.org/ns/rdfa#usesVocabulary';
 const XMLLiteralURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#XMLLiteral";
 const HTMLLiteralURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#HTML";
 const objectURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#object";
+
+const rdfaCopyPredicate = "http://www.w3.org/ns/rdfa#copy";
+const rdfaPatternType = "http://www.w3.org/ns/rdfa#Pattern";
 
 const dateTimeTypes = [
     {
@@ -92,18 +100,13 @@ const dateTimeTypes = [
 
 function deriveDateTimeType(value) {
     for (let i = 0; i < dateTimeTypes.length; i++) {
-        //console.log("Checking "+value+" against "+RDFaProcessor.dateTimeTypes[i].type);
         let matched = dateTimeTypes[i].pattern.exec(value);
         if (matched && matched[0].length == value.length) {
-            //console.log("Matched!");
             return dateTimeTypes[i].type;
         }
     }
     return null;
 }
-
-const rdfaCopyPredicate = "http://www.w3.org/ns/rdfa#copy";
-const rdfaPatternType = "http://www.w3.org/ns/rdfa#Pattern";
 
 function copyProperties () {
     var copySubjects = [];
@@ -194,7 +197,7 @@ function copyProperties () {
                     for (var l=0; l < targetPNode.objects.length; l++) {
 
                         // TODO
-                        console.error("TODO - at copy Properties, this is not implemented yet");
+                        if(logger) console.error("TODO - at copy Properties, this is not implemented yet");
                         return;
 
                         if (targetPNode.objects[l].value != rdfaPatternType) {
@@ -219,7 +222,7 @@ function copyProperties () {
                     if (!subjectPNode) {
 
                         subjectPNode = targetPNode;
-                        addMyTriple(snode.subject, subjectPNode, null)
+                        addTriple(snode.subject, subjectPNode, null)
                         // snode.predicates[predicate] = subjectPNode;
                     }
                     // for (var l=0; l < targetPNode.objects.length; l++) {
@@ -243,12 +246,8 @@ function copyProperties () {
                 }
             }
         }
-
-        // var snode = triples[copySubjects[i]];
-        // delete snode.predicates[rdfaCopyPredicate];
     }
 
-    // TODO: delete pattern subjects
     for (var subject in patternSubjects) {
         for(var i = 0; i < triples.length; i++) {
             if(subject.equals(triples[i].subject))
@@ -264,27 +263,6 @@ function copyProperties () {
  * @param obj
  */
 function addTriple(sub, pre, obj) {
-
-    if(true)
-    {
-        addMyTriple(sub, pre, obj);
-        return;
-    }
-
-    if (sub.nodeType() != 'BlankNode')
-        sub = rdf.environment.createNamedNode(sub);
-
-    pre = rdf.environment.createNamedNode(pre);
-
-    if (obj.nodeType() != 'BlankNode' && !(obj instanceof rdf.Literal))
-        obj = rdf.environment.createNamedNode(obj);
-
-    let triple = rdf.environment.createTriple(sub, pre, obj);
-
-    triples.push(triple);
-}
-
-function addMyTriple(sub, pre, obj) {
 
     if (sub.nodeType() != 'BlankNode')
         sub = rdf.environment.createNamedNode(sub);
@@ -334,19 +312,6 @@ function addMyTriple(sub, pre, obj) {
         triples.push(triple);
 }
 
-function handleObjects() {
-    for(var i = 0; i < triples.length; i++) {
-        for(var j = 0; j < triples[i].predicates.length; j++) {
-            for(var k = 0; k < triples[i].predicates[j].objects.length; k++) {
-                var object = triples[i].predicates[j].objects[k];
-
-                if(object.datatype == PlainLiteralURI || object.datatype == objectURI)
-                    object.datatype = null;
-            }
-        }
-    }
-}
-
 /**
  * parses RDFa from html
  * @param html
@@ -370,9 +335,8 @@ const parseRDFa = function (html, base = null, callback) {
     });
 
     // TODO: check if it is in html mode
-    if(true) {
+    if(INHTMLMODE) {
         copyProperties();
-        handleObjects();
     }
 
     if (!callback) {
@@ -380,7 +344,6 @@ const parseRDFa = function (html, base = null, callback) {
     } else {
         callback(triples);
     }
-
 };
 
 
@@ -426,16 +389,15 @@ let add_local_iriMaps = function (l_iriMaps, prefixString) {
         let value = prefixStrings[i].substr(key.length + 1);
 
         if (l_iriMaps[key] != undefined && l_iriMaps[key] != value) {
-            console.log('Warning: prefix ' + key + ':' + value + ' is supposed to be ' + l_iriMaps[key])
+            if(logger) console.log('Warning: prefix ' + key + ':' + value + ' is supposed to be ' + l_iriMaps[key])
         }
         l_iriMaps[key] = value;
     }
 
 };
 
+// reference: https://www.w3.org/TR/rdfa-core/#s_sequence
 function processElement($, ts, context) {
-
-    // try {
 
     if (logger) {
         console.log("\n**********************************************************************************");
@@ -461,9 +423,8 @@ function processElement($, ts, context) {
     let hrefAtt = ts.prop('href');
     let inlistAtt = ts.prop('inlist');
 
-    let inHTMLMode = true;
+    let inHTMLMode = INHTMLMODE;
 
-    // reference: https://www.w3.org/TR/rdfa-core/#s_sequence
     //seq 1
     let local_skip = false;
     let local_newSubject = null;
@@ -656,7 +617,7 @@ function processElement($, ts, context) {
                 id = local_currentObjectResource;
             }
             // TODO
-            console.error("TODO - setting new subject origin ...");
+            if(logger) console.error("TODO - setting new subject origin ...");
 
         }
     }
@@ -690,7 +651,7 @@ function processElement($, ts, context) {
 // seq 9
     if (local_currentObjectResource) {
         if (relAtt && inlistAtt) {
-            console.log('Warning: inlist not yet implemented..');
+            if(logger) console.log('Warning: inlist not yet implemented..');
         } else if (relAtt) {
             for (let i = 0; i < relAttPredicates.length; i++) {
                 addTriple(local_newSubject, relAttPredicates[i], local_currentObjectResource);
@@ -711,7 +672,7 @@ function processElement($, ts, context) {
         }
 
         if (relAtt && inlistAtt) {
-            console.log('Warning: inlist not yet implemented..');
+            if(logger) console.log('Warning: inlist not yet implemented..');
 
         } else if (relAtt) {
             let relAtt = context.getURI(ts, 'rel');
@@ -758,7 +719,6 @@ function processElement($, ts, context) {
             datatype = PlainLiteralURI;
             content = ts.prop('content')
         } else if (datetimeAtt) {
-            console.log("TODO - seq11 - datetime");
             content = ts.prop('datetime');
             datatype = deriveDateTimeType(content);
             if (!datatype) {
@@ -800,20 +760,20 @@ function processElement($, ts, context) {
             if (predicate) {
                 if (inlistAtt) {
                     // TODO: inlist
-                    console.log('Warning: inlist not yet implemented..');
+                    if(logger) console.log('Warning: inlist not yet implemented..');
                 } else {
                     if (datatype == XMLLiteralURI || datatype == HTMLLiteralURI) {
-                        console.log("TODO - seq11 - check");
                         addTriple(local_newSubject, predicate, rdf.environment.createLiteral(ts.text(), local_language, datatype));
                     } else {
                         // TODO : check old and new version
+                        // addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content, local_language, datatype ? datatype : PlainLiteralURI));
                         if (datatype && datatype == objectURI)
                             addTriple(local_newSubject, predicate, content);
                         else if (datatype && datatype != PlainLiteralURI)
                             addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content, local_language, datatype));
                         else
                             addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content, local_language, null));
-                           // addTriple(local_newSubject, predicate, rdf.environment.createLiteral(content, local_language, datatype ? datatype : PlainLiteralURI));
+
                     }
                 }
             }
@@ -827,7 +787,7 @@ function processElement($, ts, context) {
         for (let i = 0; i < context.incompleteTriples.length; i++) {
             let icT = context.incompleteTriples[i];
             if (icT.direction == 'none') {
-                console.log("TODO - seq12 - direction = none");
+                if(logger) console.log("TODO - seq12 - direction = none");
                 // TODO: unclear what to do here
                 // context.incompleteTriples.push(new incompleteTriples(rdf.environment.createLiteral(local_newSubject, local_language, objectURI), icT.predicate, null, 'WTF'))
             } else if (icT.direction == 'forward') {
@@ -878,10 +838,6 @@ function processElement($, ts, context) {
 
         processElement($, ths, ctx);
     });
-
-    // } catch (err) {
-    //     console.error("ERROR: " + err);
-    // }
 }
 
 Object.defineProperty(Object.prototype, 'hasOwnPropertyCI', {
@@ -912,3 +868,4 @@ Object.defineProperty(Object.prototype, 'getCI', {
 
 
 exports.parseRDFa = parseRDFa;
+exports.setLogger = setLogger;
