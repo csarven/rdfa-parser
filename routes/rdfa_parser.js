@@ -318,11 +318,13 @@ function addTriple(sub, pre, obj) {
  * @param base optional set base to a specific value
  * @param callback
  */
-const parseRDFa = function (html, base = null, callback) {
+const parseRDFa = function (html, base = null) {
 
     triples = [];
 
     rdf.setBuiltins();
+
+    if(base == null) base = 'http://thisIsATest/.html';
 
     let $ = cheerio.load(html);
 
@@ -339,11 +341,13 @@ const parseRDFa = function (html, base = null, callback) {
         copyProperties();
     }
 
-    if (!callback) {
-        return triples;
-    } else {
-        callback(triples);
-    }
+    return triples;
+
+    // if (!callback) {
+    //     return triples;
+    // } else {
+    //     callback(triples);
+    // }
 };
 
 
