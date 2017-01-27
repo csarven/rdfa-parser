@@ -19,10 +19,6 @@ inlist not yet implemented. tests: 0218
 ### Real Issues:
 0266 0267 0268 -> ?a sameAs ?b <=> ?b sameAs ?a is not true with our test db
 
-0301 -> new Subject origin
-
-0321 -> copy ???
-
 
 
 

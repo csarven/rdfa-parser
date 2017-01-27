@@ -187,7 +187,7 @@ function printResult() {
     }
 
     process.stdout.write(passedArr[passedArr.length-1] + '\n');
-    
+
     if (failedArr.length > 0) console.log('\n>>> failed:\t\t' + failedArr);
     if (skippedArr.length > 0) console.log('\n>>> skipped:\t' + skippedArr);
     console.log('=====================================================================');

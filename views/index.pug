@@ -1,25 +1,26 @@
 extends layout
 
 block content
-  div.container
-    h1 RDFa - Parser
-    p Please enter
-    ul
-      li a URL ("http://...")
-      li a file path ("file://...")
-      li or plain html ("&lt; ... &gt;")
+    div.container
+        h1 RDFa - Parser
+        p Please enter
+        ul
+            li a URL ("http://...")
+            li a file path ("file:...")
+            li or plain html ("&lt; ... &gt;")
 
-  div.container
-    //input.span3(id="url", type="text", name="URL", placeholder="Enter URL to parse")
-    div.form-group
-      textarea#inputField.form-control.animated(name="input", rows="12")
-        |http://iricelino.org/rdfa/sample-annotated-page.html
+        div.container
+            div.form-group
+                textarea#inputField.form-control.animated(name="input", rows="5")
+                    |http://iricelino.org/rdfa/sample-annotated-page.html
+            div.form-group depth:
+                input#depthField(type="number" min="1" max="99" value="1")
+            p &nbsp;
+            div.form-group
+                a.btn.btn-info.pull-right#submitButton(type="submit") Submit (Ctrl + Return)
+                a.btn.btn-info.pull-right#downloadButton Download .sparql file
+        p &nbsp;
+        div.container
+            pre#outputField enter something ^^^^ - above - ^^^^ to get some OUTPUT..
 
-    div.form-group
-      a.submitButton.btn.btn-info.pull-right(type="submit") Submit (Ctrl + Return)
-  p &nbsp;
-
-  div.container
-    pre#outputField enter something ^^^^ - above - ^^^^ to get some OUTPUT..
-
-  div.footer
+        div.footer
