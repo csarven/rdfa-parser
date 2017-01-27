@@ -8,7 +8,6 @@
  * 
  */
 var Crawler = require("simplecrawler");			
-var parser = require('./crawler_test.js');
 
 //In finaler version nicht benötigt:
 var cheerio = require('cheerio');

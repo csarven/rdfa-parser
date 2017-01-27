@@ -47,6 +47,9 @@ $(document).ready(function () {
     });
 
     let submit = function () {
+        let outField = $('#outputField');
+        outField.text('');
+
         $.post(
             '/',
             {
@@ -54,7 +57,6 @@ $(document).ready(function () {
                 depth: $('#depthField').val()
             },
             function (response) {
-                let outField = $('#outputField');
                 let txt = outField.text().trim();
                 outField.text(txt + "\n" + response);
             }
