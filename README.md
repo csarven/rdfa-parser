@@ -19,7 +19,8 @@ Fertiges Packet - welche Funktionen enthalten (zB Frontend nicht?) und wie erste
 
 Readme - fertig stellen
 
-Präsentation fertigstellen (selber Link wie für Statusreport) //
+Präsentation fertigstellen (selber Link wie für Statusreport) 
+
 Dokumentation erstellen (4-6 Seiten, Inhalt siehe Kursunterlagen)
 
 # Known Issues:
