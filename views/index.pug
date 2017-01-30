@@ -1,23 +1,29 @@
 extends layout
 
 block content
+    script(src='/js/main.js')
     div.container
         h1 RDFa - Parser
-        p Please enter
-        ul
-            li a URL ("http://...")
-            li a file path ("file:...")
-            li or plain html ("&lt; ... &gt;")
 
         div.container
             div.form-group
-                textarea#inputField.form-control.animated(name="input", rows="5")
+                p Database name (Enter the stardog db-name. You can configure dbs #{''}
+                    a(href='http://localhost:5820/#/databases', target='_blank') here
+                    | )
+                textarea#dbField.form-control(rows='1') test_db
+                p &nbsp;
+                p Please enter
+                    ul
+                        li a URL ("http://...")
+                        li a file path ("file:...")
+                        li or plain html ("&lt; ... &gt;")
+                textarea#inputField.form-control.animated(name='input', rows='5')
                     |http://booking.com
-            div.form-group depth:
-                input#depthField(type="number" min="1" max="99" value="1")
-            p &nbsp;
+                p &nbsp;
+                p depth:
+                    input#depthField.form-control(type='number' min='1' max='99' value='1')
             div.form-group
-                a.btn.btn-info.pull-right#submitButton(type="submit") Submit (Ctrl + Return)
+                a.btn.btn-info.pull-right#submitButton(type='submit') Submit (Ctrl + Return)
                 a.btn.btn-info.pull-right#downloadButton Download .sparql file
         p &nbsp;
         div.container

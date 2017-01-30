@@ -6,8 +6,8 @@
 
 const fs = require('fs');
 const rdf = require('rdf');
-const rdfaParser = require('../routes/rdfa_parser.js');
-const parser_helper = require('../routes/parser_helper.js');
+const rdfaParser = require('../lib/rdfa_parser.js');
+const parser_helper = require('../lib/parser_helper.js');
 
 rdf.setBuiltins();
 
@@ -27,8 +27,8 @@ let testMinToRun = ['0000'];
 let testToRun = [];
 let testNotToRun = [];
 
-let path = './cache/html5/';
-
+let path = './tests/cache/html5/';
+let database = 'test_db';
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 // only edit here if you want to .........
 
@@ -38,8 +38,8 @@ let path = './cache/html5/';
 // run all tests, but not these from testNotToRun
 testNotToRun = [
     '0065', '0176' // js
-    ,'0218', '0219', '0220', '0221', '0224', '0225' // inlist
-    ,'0266', '0267', '0268' // reflexivity
+    , '0218', '0219', '0220', '0221', '0224', '0225' // inlist
+    , '0266', '0267', '0268' // reflexivity
 ];
 
 // run all tests < testMaxToRun
@@ -63,11 +63,11 @@ function doTest(tests, i) {
         return;
     }
 
-    parser_helper.emptyDB()
+    parser_helper.emptyDB(database)
         .then(function () {
 
             let testNumber = getTestNumber(test);
-            parser_helper.getHTML(test, function(html) {
+            parser_helper.getHTML(test, function (html) {
                 let base = "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/" + testNumber + ".html";
 
                 if (logger) console.log('########################################################### ' + 'Test ' + testNumber + ' ###########################################################');
@@ -76,19 +76,24 @@ function doTest(tests, i) {
 
                 if (logger) console.log('#################################################################################################################################');
 
-                parser_helper.insertTriples(triples)
+                parser_helper.insertTriples(triples, database)
                     .then(function () {
 
                         let sparqlFilename = test.substring(0, test.length - 5) + '.sparql';
                         let sparqlQuery = fs.readFileSync(sparqlFilename, 'utf-8');
 
-                        parser_helper.getAllTriples()
+                        parser_helper.getAllTriples(database)
                             .then(function () {
 
-                                parser_helper.executeQuery(sparqlQuery)
+                                parser_helper.executeQuery(sparqlQuery, database)
                                     .then(function () {
-                                        passedArr.push(testNumber);
-                                        if (logger) console.log('>>> passed test: ' + testNumber);
+                                        if (negativeTests.indexOf(testNumber) >= 0) {
+                                            if (logger) console.log('>>> failed negative test: ' + testNumber);
+                                            failedArr.push(testNumber);
+                                        } else {
+                                            if (logger) console.log('>>> passed test: ' + testNumber);
+                                            passedArr.push(testNumber);
+                                        }
                                         next(tests, i);
 
                                     })
@@ -116,7 +121,7 @@ function doTest(tests, i) {
 
         })
         .catch(function (err) {
-            if(!err.equals(parser_helper.dbError)) {
+            if (!err.equals(parser_helper.dbError)) {
                 failedArr.push(getTestNumber(tests[i]));
                 console.error(err);
                 next(tests, i);
@@ -172,12 +177,12 @@ function printResult() {
     console.log('Tried ' + done + ' tests (passed:' + passedArr.length + ' || failed:' + failedArr.length + ' || skipped: ' + skippedArr.length + ')');
 
     process.stdout.write('\n>>> passed:\t\t');
-    for(let i = 0; i < passedArr.length - 1; i++) {
-        if((i % 20) == 0 && i != 0) process.stdout.write('\n\t\t\t\t');
+    for (let i = 0; i < passedArr.length - 1; i++) {
+        if ((i % 20) == 0 && i != 0) process.stdout.write('\n\t\t\t\t');
         process.stdout.write(passedArr[i] + ',');
     }
 
-    process.stdout.write(passedArr[passedArr.length-1] + '\n');
+    process.stdout.write(passedArr[passedArr.length - 1] + '\n');
 
     if (failedArr.length > 0) console.log('\n>>> failed:\t\t' + failedArr);
     if (skippedArr.length > 0) console.log('\n>>> skipped:\t' + skippedArr);

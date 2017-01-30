@@ -38,7 +38,7 @@ $(document).ready(function () {
 
     // submit button
     $('#submitButton').on('click', function () {
-       submit();
+        submit();
     });
 
     // download button
@@ -56,6 +56,7 @@ $(document).ready(function () {
             '/',
             {
                 text: inputField.val(),
+                database: $('#dbField').val(),
                 depth: $('#depthField').val()
             },
             function (response) {

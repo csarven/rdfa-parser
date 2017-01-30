@@ -1,9 +1,16 @@
 {
-  "name": "RDFa_parser",
-  "version": "0.0.0",
+  "name": "rdfa_parser",
+  "version": "0.0.1",
+  "description": "parser and crawler for rdfa",
+  "homepage": "https://github.com/rolandg/rdfa_parser",
+  "bugs": "https://github.com/rolandg/rdfa_parser/issues",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "test": "node ./tests/test.js",
+    "start-db-server": "./db-server/run_server.sh",
+    "stop-db-server": "./db-server/stop_server.sh",
+    "start-db-server-windows": "./db-server/run_server_win.sh"
   },
   "dependencies": {
     "body-parser": "~1.15.1",
