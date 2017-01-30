@@ -7,6 +7,22 @@ RDF-Core-Sequence: https://www.w3.org/TR/rdfa-syntax/#s_sequence
 
 RDF-Interface: https://www.w3.org/TR/rdf-interfaces/#idl-def-RDFNode
 
+# TO-DO
+
+Parser - soweit fertig (evtl. bug fixes)
+
+Crawler - soweit fertig (evtl. console.log() )
+
+Frontend - Append triples from >1 Website
+
+Fertiges Packet - welche Funktionen enthalten (zB Frontend nicht?) und wie erstellen
+
+Readme - fertig stellen
+
+Präsentation fertigstellen (selber Link wie für Statusreport) 
+
+Dokumentation erstellen (4-6 Seiten, Inhalt siehe Kursunterlagen)
+
 # Known Issues:
 
 ### Containing JavaScript:
