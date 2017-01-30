@@ -16,6 +16,7 @@ app.set('views', path.join(__dirname, 'views'));
 
 // static paths for jquery & bootstrap
 app.use('/jquery', express.static(__dirname + '/node_modules/jquery/dist/'));
+app.use('/socket.io', express.static(__dirname + '/node_modules/socket.io-client/dist/'));
 app.use('/bootstrap', express.static(__dirname + '/node_modules/bootstrap/dist/'));
 
 // uncomment after placing your favicon in /public

@@ -21,6 +21,8 @@
     "request": "^2.78.0",
     "serve-favicon": "~2.3.0",
     "simplecrawler": "^1.0.3",
+    "socket.io": "^1.7.2",
+    "socket.io-client": "^1.7.2",
     "stardog": "^0.3.1"
   }
 }

@@ -18,8 +18,8 @@ $(document).ready(function () {
     }
 
     // submit with ctrl + return
-    inputField.keydown(function (event) {
-        if(event.ctrlKey && event.keyCode == 13) {
+    $('body').keydown(function (event) {
+        if (event.ctrlKey && event.keyCode == 13) {
             submit();
         }
     });
@@ -32,23 +32,25 @@ $(document).ready(function () {
             matches = text.match(/\n/g),
             breaks = matches ? matches.length : 2;
 
-        if(breaks > 4)
+        if (breaks > 4)
             $(this).attr('rows', breaks + 2);
     });
 
     // submit button
-    $("#submitButton").on('click', function () {
-        submit();
+    $('#submitButton').on('click', function () {
+       submit();
     });
 
     // download button
-    $("#downloadButton").on('click', function () {
-            download("triples.sparql", "INSERT DATA {\n" + $("#outputField").text() + "\n }");
+    $('#downloadButton').on('click', function () {
+        download('triples.sparql', 'INSERT DATA {\n' + $('#outputField').text() + '\n }');
     });
 
     let submit = function () {
         let outField = $('#outputField');
         outField.text('');
+        $('#submitButton').toggleClass('disabled', true);
+        $('body').css('cursor', 'progress');
 
         $.post(
             '/',
@@ -58,9 +60,30 @@ $(document).ready(function () {
             },
             function (response) {
                 let txt = outField.text().trim();
-                outField.text(txt + "\n" + response);
+                outField.text(txt + '\n' + response);
+                enable();
             }
         );
+    };
+
+    let socket = io.connect('http://localhost:8008');
+    socket.on('for_client', function (data) {
+        let outField = $('#outputField');
+
+        if (!data.finished) {
+            let txt = outField.text().trim();
+            outField.text(txt + '\n' + data.data);
+        } else {
+            setTimeout(function () {
+                enable()
+            }, 20000);
+        }
+        // socket.emit('for_server', {data: 'data'});
+    });
+
+    let enable = function () {
+        $('#submitButton').toggleClass('disabled', false);
+        $('body').css('cursor', 'default');
     }
 
 });

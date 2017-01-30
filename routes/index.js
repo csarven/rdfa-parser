@@ -7,6 +7,24 @@ parser_helper.setLogger(true);
 
 const router = express.Router();
 
+// const server = app.listen(3000, () => {
+//   console.log('listening on *:3000');
+// });
+
+// const io = require('socket.io')(server);
+const io = require('socket.io').listen(8008);
+
+// io.sockets.on('connection', function (socket) {
+//     socket.emit('for_client', {someData: 'if necessary'});
+//     socket.on('for_server', function (data) {
+//         doSomethingServerSide(data);
+//     });
+// });
+
+// function doSomethingServerSide(data) {
+//     console.log(data);
+// }
+
 // const DEBUG = typeof v8debug === 'object';
 
 /* GET home page. */
@@ -26,15 +44,18 @@ router.post('/', function (req, res) {
 
             if(text.startsWith('http')) {
 
-                depth = 2;
-
                 crawler.myCrawler(text, depth, function (buffer, base) {
                     parser_helper.getHTML(buffer, function(buf) {
-                        doParse(buf, base, function(out) {
-                            res.send(out);
-                        })
+                        doParse(buf, base, function (out) {
+                            io.emit('for_client', {data: out});
+                        });
+                        // io.sockets.on('connection', function (socket) {
+                        //     io.emit('for_client', {data: buf});
+                        // });
                     });
-
+                }, function () {
+                    // on finished
+                    io.emit('for_client', {finished: true});
                 });
             } else {
                 parser_helper.getHTML(text, function(buf) {
@@ -66,14 +87,12 @@ const doParse = function(html, base, callback) {
                     callback(results);
                 })
                 .catch(function () {
-                    callback('could not recieve triples');
+                    callback('could not receive triples');
                 });
         })
         .catch(function () {
             callback('could not insert triples');
         });
 };
-
-
 
 module.exports = router;
