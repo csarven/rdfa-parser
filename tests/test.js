@@ -27,7 +27,7 @@ let testMinToRun = ['0000'];
 let testToRun = [];
 let testNotToRun = [];
 
-let path = './tests/cache/html5/';
+let path = './test/cache/html5/';
 let database = 'test_db';
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 // only edit here if you want to .........
@@ -47,7 +47,7 @@ testNotToRun = [
 // testMaxToRun = ['0100'];
 
 // activate logger for tests
-logger = true;
+logger = false;
 parser_helper.setLogger(logger);
 
 // activate logger for parser
@@ -144,7 +144,8 @@ function getTests(filter, callback) {
     fs.readdir(path, (err, files) => {
 
         if (err) {
-            console.error('Could not find files! Maybe you forgot to download the test-files?');
+            console.error(err.message);
+            console.error('Maybe you forgot to download the test-files?');
             console.error('>>> run download-html5.sh');
         } else {
             files.forEach(file => {
@@ -159,7 +160,6 @@ function getTests(filter, callback) {
                     } else {
                         skippedArr.push(getTestNumber(file));
                     }
-
                 }
             });
             callback(tests);
@@ -173,20 +173,27 @@ function printResult() {
     let done = passedArr.length + failedArr.length;
     let skipped = testCount - done;
 
-    console.log('=====================================================================');
-    console.log('Tried ' + done + ' tests (passed:' + passedArr.length + ' || failed:' + failedArr.length + ' || skipped: ' + skippedArr.length + ')');
+    console.log('===================================================================================================================================');
+    console.log('>>> Tried ' + done + ' tests (passed:' + passedArr.length + ' || failed:' + failedArr.length + ' || skipped: ' + skippedArr.length + ')');
+    printArray('passed', passedArr);
+    printArray('failed', failedArr);
+    printArray('skipped', skippedArr);
+    console.log('\n===================================================================================================================================');
+}
 
-    process.stdout.write('\n>>> passed:\t\t');
-    for (let i = 0; i < passedArr.length - 1; i++) {
+function printArray(info, arr) {
+    "use strict";
+    process.stdout.write('\n>>> ' + info + ':\t');
+    if(info.length <= 6) process.stdout.write('\t');
+
+    if(arr.length == 0) return 'EMPTY';
+
+    for (let i = 0; i < arr.length - 1; i++) {
         if ((i % 20) == 0 && i != 0) process.stdout.write('\n\t\t\t\t');
-        process.stdout.write(passedArr[i] + ',');
+        process.stdout.write(arr[i] + ',');
     }
 
-    process.stdout.write(passedArr[passedArr.length - 1] + '\n');
-
-    if (failedArr.length > 0) console.log('\n>>> failed:\t\t' + failedArr);
-    if (skippedArr.length > 0) console.log('\n>>> skipped:\t' + skippedArr);
-    console.log('=====================================================================');
+    process.stdout.write(arr[arr.length - 1]);
 }
 
 // main...
