@@ -1,7 +1,6 @@
 extends layout
 
 block content
-    script(src='/js/main.js')
     div.container
         h1 RDFa - Parser
 
@@ -18,10 +17,10 @@ block content
                         li a file path ("file:...")
                         li or plain html ("&lt; ... &gt;")
                 textarea#inputField.form-control.animated(name='input', rows='5')
-                    |http://booking.com
+                    |http://iricelino.org
                 p &nbsp;
                 p depth:
-                    input#depthField.form-control(type='number' min='1' max='99' value='1')
+                    input#depthField.form-control(type='number' min='1' max='99' value='5')
             div.form-group
                 a.btn.btn-info.pull-right#submitButton(type='submit') Submit (Ctrl + Return)
                 a.btn.btn-info.pull-right#downloadButton Download .sparql file

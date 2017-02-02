@@ -33,14 +33,15 @@ router.post('/', function (req, res) {
 
     if (text.startsWith('http')) {
 
-        crawler.myCrawler(text, depth, function (buffer, base) {
-            parser_helper.getHTML(buffer, function (buf) {
+        crawler.myCrawler(text, depth, function (base) {
+            parser_helper.getHTML(base, function (buf) {
                 doParse(buf, base, database, function (out) {
-                    io.emit('for_client', {data: out});
+                    let string = (out.length > 0 ? '*** ' + base + ' ***\n' : '');
+                    for (let i = 0; i < out.length; i++) {
+                        string += out[i].toString() + '\n';
+                    }
+                    io.emit('for_client', {data: string});
                 });
-                // io.sockets.on('connection', function (socket) {
-                //     io.emit('for_client', {data: buf});
-                // });
             });
         }, function () {
             // on finished
@@ -70,14 +71,7 @@ const doParse = function (html, base, database, callback) {
 
     parser_helper.insertTriples(triples, database)
         .then(function () {
-
-            parser_helper.getAllTriples(database)
-                .then(function (results) {
-                    callback(results);
-                })
-                .catch(function () {
-                    callback('could not receive triples');
-                });
+            callback(triples);
         })
         .catch(function () {
             callback('could not insert triples');

@@ -79,7 +79,6 @@ $(document).ready(function () {
                 enable()
             }, 20000);
         }
-        // socket.emit('for_server', {data: 'data'});
     });
 
     let enable = function () {
