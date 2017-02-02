@@ -2,6 +2,7 @@
 .vagrant-wks
 .vagrant-nbk
 html5/
+html4/
 stardog/
 db/
 

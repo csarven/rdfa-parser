@@ -27,13 +27,15 @@ let testMinToRun = ['0000'];
 let testToRun = [];
 let testNotToRun = [];
 
-let path = './test/cache/html5/';
+let path = './tests/cache/';
 let database = 'test_db';
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 // only edit here if you want to .........
+let hostLanguage = 'html5';
 
 // fill in the test numbers you want to run
-// testToRun = ['0301'];
+// testToRun = ['0325'];
 
 // run all tests, but not these from testNotToRun
 testNotToRun = [
@@ -43,7 +45,7 @@ testNotToRun = [
 ];
 
 // run all tests < testMaxToRun
-// testMinToRun = ['0200'];
+// testMinToRun = ['0325'];
 // testMaxToRun = ['0100'];
 
 // activate logger for tests
@@ -51,7 +53,7 @@ logger = false;
 parser_helper.setLogger(logger);
 
 // activate logger for parser
-rdfaParser.setLogger(false);
+rdfaParser.setLogger(logger);
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function doTest(tests, i) {
@@ -68,7 +70,7 @@ function doTest(tests, i) {
 
             let testNumber = getTestNumber(test);
             parser_helper.getHTML(test, function (html) {
-                let base = "http://rdfa.info/test-suite/test-cases/rdfa1.1/html5/" + testNumber + ".html";
+                let base = "http://rdfa.info/test-suite/test-cases/rdfa1.1/" + hostLanguage + "/" + testNumber + ".html";
 
                 if (logger) console.log('########################################################### ' + 'Test ' + testNumber + ' ###########################################################');
 
@@ -141,7 +143,8 @@ function getTestNumber(test) {
 function getTests(filter, callback) {
     let tests = [];
 
-    fs.readdir(path, (err, files) => {
+    let fullpath = path + hostLanguage + '/';
+    fs.readdir(fullpath, (err, files) => {
 
         if (err) {
             console.error(err.message);
@@ -156,7 +159,7 @@ function getTests(filter, callback) {
                         testNotToRun.indexOf(testNumber) < 0 &&
                         testNumber <= testMaxToRun &&
                         testNumber >= testMinToRun) {
-                        tests.push(path + file);
+                        tests.push(fullpath + file);
                     } else {
                         skippedArr.push(getTestNumber(file));
                     }
