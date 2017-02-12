@@ -36,7 +36,7 @@ router.post('/', function (req, res) {
         crawler.myCrawler(text, depth, function (base) {
             parser_helper.getHTML(base, function (buf) {
                 doParse(buf, base, database, function (out) {
-                    let string = (out.length > 0 ? '*** ' + base + ' ***\n' : '');
+                    let string = (out.length > 0 ? '#######\n# ' + base + '\n' : '');
                     for (let i = 0; i < out.length; i++) {
                         string += out[i].toString() + '\n';
                     }

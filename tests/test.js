@@ -35,7 +35,7 @@ let database = 'test_db';
 let hostLanguage = 'html5';
 
 // fill in the test numbers you want to run
-// testToRun = ['0325'];
+testToRun = ['0001'];
 
 // run all tests, but not these from testNotToRun
 testNotToRun = [
@@ -49,7 +49,7 @@ testNotToRun = [
 // testMaxToRun = ['0100'];
 
 // activate logger for tests
-logger = false;
+logger = true;
 parser_helper.setLogger(logger);
 
 // activate logger for parser
