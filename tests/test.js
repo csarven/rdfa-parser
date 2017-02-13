@@ -7,7 +7,7 @@
 const fs = require('fs');
 const rdf = require('rdf');
 const rdfaParser = require('rdfa-parser');
-const parser_helper = rdfaParser.helper;
+const parser_helper = require('../routes/parser_helper.js');
 
 rdf.setBuiltins();
 

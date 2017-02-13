@@ -1,6 +1,6 @@
 const express = require('express');
 const rdfaParser = require('rdfa-parser');
-const parser_helper = rdfaParser.helper;
+const parser_helper = require('./parser_helper.js');
 
 parser_helper.setLogger(true);
 
