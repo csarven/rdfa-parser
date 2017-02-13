@@ -13,6 +13,7 @@
     "start-db-server-windows": "./db-server/run_server_win.sh"
   },
   "dependencies": {
+    "rdfa-parser": "~1.0.0",
     "body-parser": "~1.15.1",
     "bootstrap": "^3.3.7",
     "cheerio": "^0.22.0",

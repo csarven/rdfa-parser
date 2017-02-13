@@ -1,7 +1,6 @@
 const express = require('express');
-const rdfaParser = require('../lib/rdfa_parser.js');
-const parser_helper = require('../lib/parser_helper.js');
-const crawler = require('../lib/crawler.js');
+const rdfaParser = require('rdfa-parser');
+const parser_helper = rdfaParser.helper;
 
 parser_helper.setLogger(true);
 
@@ -33,7 +32,7 @@ router.post('/', function (req, res) {
 
     if (text.startsWith('http')) {
 
-        crawler.myCrawler(text, depth, function (base) {
+        rdfaParser.crawler(text, depth, function (base) {
             parser_helper.getHTML(base, function (buf) {
                 doParse(buf, base, database, function (out) {
                     let string = (out.length > 0 ? '#######\n# ' + base + '\n' : '');

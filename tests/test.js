@@ -6,8 +6,8 @@
 
 const fs = require('fs');
 const rdf = require('rdf');
-const rdfaParser = require('../lib/rdfa_parser.js');
-const parser_helper = require('../lib/parser_helper.js');
+const rdfaParser = require('rdfa-parser');
+const parser_helper = rdfaParser.helper;
 
 rdf.setBuiltins();
 
@@ -53,7 +53,6 @@ logger = true;
 parser_helper.setLogger(logger);
 
 // activate logger for parser
-rdfaParser.setLogger(logger);
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function doTest(tests, i) {
@@ -74,7 +73,7 @@ function doTest(tests, i) {
 
                 if (logger) console.log('########################################################### ' + 'Test ' + testNumber + ' ###########################################################');
 
-                let triples = rdfaParser.parseRDFa(html, base);
+                let triples = rdfaParser.parseRDFa(html, base, logger);
 
                 if (logger) console.log('#################################################################################################################################');
 
