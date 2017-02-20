@@ -26,7 +26,7 @@
 \usepackage{wrapfig} % Allows in-line images
 
 \usepackage{hyperref} % use links for ToC, etc.
-
+\usepackage{listings} % use code snippet formatting
 
 \usepackage{mathpazo} % Use the Palatino font
 \usepackage[T1]{fontenc} % Required for accented characters
@@ -109,29 +109,26 @@ Ein auf JavaScript basierte Bibliothek zur Durchsuchung von RDFa annotierten Inf
 
 \section{Problem Definition}
 
-Mit der historischen Entwicklung des Internets wurden immer wieder Techniken eingef\"uhrt, die den Datenaustausch zwischen Rechnern vereinfachen. W\"ahrend im klassischen Internet, auch Web 1.0 (URL, HTTP, HTML, etc.) genannt, der Fokus auf dem Aufbau und Transport der Daten liegt, betrachtet der Ansatz "Semantic Web" m\"ogliche Interpretationen der Daten. Dies wird auch Web 3.0 genannt und erm\"oglicht eine vereinfachte Abarbeitung von Aufgaben, basierend auf Internetdaten. So kann zum Beispiel unterschieden werden, ob das Wort "Bremen" auf einer bestimmten Webseite sich entweder auf eine deutsche Stadt, einen Familiennamen oder einem sonstigen Namen bezieht. Die Kerneigenschaft des "Semantic Web" stellt die Universalit\"at der Relationten, sowie die maschinelle Interpretationsmöglichkeit der Informationen dar. Dies bedeutet, dass prinzipiell alle Informationsobjekte miteinander verkn\"upft werden können um Wissen zu repr\"asentieren und verarbeiten \cite{berners2001semantic}. \\
+Mit der historischen Entwicklung des Internets wurden immer wieder Techniken eingef\"uhrt, die den Datenaustausch zwischen Rechnern vereinfachen. W\"ahrend im klassischen Internet, auch Web 1.0 (URL, HTTP, HTML, etc.) genannt, der Fokus auf dem Aufbau und Transport der Daten liegt, betrachtet der Ansatz "Semantic Web" m\"ogliche Interpretationen der Daten. Dies wird auch Web 3.0 genannt und erm\"oglicht eine vereinfachte Abarbeitung von Aufgaben, basierend auf Internetdaten. So kann zum Beispiel unterschieden werden, ob das Wort "Bremen" auf einer bestimmten Webseite sich entweder auf eine deutsche Stadt, einen Familiennamen oder einem sonstigen Namen bezieht. Die Kerneigenschaft des "Semantic Web" stellt die Universalit\"at der Relationten, sowie die maschinelle Interpretations\"omglichkeit der Informationen dar. Dies bedeutet, dass prinzipiell alle Informationsobjekte miteinander verkn\"upft werden k\"onnen um Wissen zu repr\"asentieren und verarbeiten \cite{berners2001semantic}. \\
 
-Um Daten mit diesen Metainformationen anzureichern, wurden diverse Annotationstypen eingef\"uhrt. Neben JSON-LD und Microdata, bietet sich hierf\"ur das "Resource Description Frameworks" (RDF) an. Ziel dieser Arbeit ist die Erstellung einer Programmierbibliothek f\"ur den JavaScript basierten "Node Package Manager" (npm) zum automatischen extrahieren von kontext spezifischen Informationen, Schema.org Vokabular annotiert mittels RDFa Syntax (W3C Standard Annotation f\"ur RDF), welche in XHTML Webseiten eingebettet sind \cite{guha2016schema}, \cite{halb2008building}.
+Um Daten mit diesen Metainformationen anzureichern, wurden diverse Annotationen eingef\"uhrt. Neben JSON-LD und Microdata, bietet sich hierf\"ur das "Resource Description Frameworks" (RDF) an. Ziel dieser Arbeit ist die Erstellung einer Programmierbibliothek f\"ur den JavaScript basierten "Node Package Manager" (npm) zum automatischen extrahieren von kontextspezifischen Informationen, Schema.org Vokabular annotiert mittels RDFa Syntax (W3C Standard Annotation f\"ur RDF), welche in XHTML Webseiten eingebettet sind \cite{guha2016schema}, \cite{halb2008building}.
 
 \subsection{RDFa annotierte Information}
 
-RDF definiert eine Schnittstelle f\"ur diverse Anotationen zur Darstellung von schemantischen Informationen. Zu diesem geh\"oren die schematische Darstellung von Informationen als Graphen. Ein Graph ist hierbei eine Menge von Triplen, welche einzelne Informationen repr\"asentieren. Ein Triple besteht jeweils aus drei verschiednenen Knoten, die in folgender Reihe definiert sind. 
+RDF definiert eine Schnittstelle f\"ur diverse Annotationen zur Darstellung von semantischen Informationen. Zu diesem geh\"oren die schematische Darstellung von Informationen als Graphen. Ein Graph ist hierbei eine Menge von Tripeln, welche einzelne Informationen repr\"asentieren. Ein Tripel besteht jeweils aus drei verschiedenen Knoten, die in folgender Reihe definiert sind. 
 
 \begin{itemize}
 \item \textbf{Subjekt} der Information (z.B. "Hannes").
-\item \textbf{Pr\"adikat} des zugeordnenten Triples (z.B. "wohnt in").
-\item \textbf{Objekt} des zugeordnenten Triples  (z.B. "Innsbruck").
+\item \textbf{Pr\"adikat} der Information (z.B. "wohnt in").
+\item \textbf{Objekt} der Information (z.B. "Innsbruck").
 \end{itemize}
 
-Jeder Knoten ist entweder ein "International Resource Identifier" (IRI), oder ein "Blank Node", welcher typischerweise als einmalige Zeichenketten (String) dargestellt wird \cite{adida2008rdfa}. \\
-
-Teilziel der Arbeit ist die Filtern von RDFa annotierten Information von Dokumenten im XHTML Format. Der implementierte Prozess der erstellung eines RDF Graphen basiert auf der "RDFa Core Sequence" \cite{rdfaSequence}.
+Jeder Knoten ist entweder ein "International Resource Identifier" (IRI), oder ein "Blank Node", welcher typischerweise als einmalige Zeichenketten (String) dargestellt wird \cite{adida2008rdfa}. Teilziel der Arbeit ist die Filtern von RDFa annotierten Information von Dokumenten im XHTML Format. Der implementierte Prozess der Erstellung eines RDF Graphen basiert auf der "RDFa Core Sequence" \cite{rdfaSequence}.
 
 \subsection{Webcrawler}
 
-Der zweite Teil der Arbeit, bezieht sich auf den Bezug von XHTML formatierten Dokumenten, welche RDFa annotierte Information enthalten. Mittels der Methode eines Webcrawlers wird auf im Internet zugreifbare Daten automatisch zugegriffen. Dabei definiert der Benutzer einen Startpunkt, ein "Uniform Resource Locater" (URL), auf den dieser Zugriff hat. Ausgehend von dieser Resource, typischerweise ein XHTML Dokument, werden weiterf\"uhrende URLs durchsucht. Wie diese Durchsuchung im Einzelnen abl\"auft, zum Beispiel welche Datenformate nicht durchsucht werden sollten, wird vom Benutzer festgelegt \cite{pinkerton2000webcrawler}. \\
-
-Teilziel der Arbeit ist der Zugriff auf zusammenh\"angende XHTML formatierten Daten, ausgehend von einer festgelegten URL.
+Der zweite Teil der Arbeit, bezieht sich auf den Bezug von XHTML formatierten Dokumenten, welche RDFa annotierte Information enthalten. Mittels der Methode eines Webcrawlers wird auf im Internet zugreifbare Daten automatisch zugegriffen. Dabei definiert der Benutzer einen Startpunkt, ein "Uniform Resource Locater" (URL), auf den dieser Zugriff hat. Ausgehend von dieser Ressource, typischerweise ein XHTML Dokument, werden weiterf\"uhrende URLs durchsucht. Wie diese Durchsuchung im Einzelnen abl\"auft, zum Beispiel welche Datenformate nicht durchsucht werden sollten, wird vom Benutzer festgelegt \cite{pinkerton2000webcrawler}. 
+Teilziel der Arbeit ist der Zugriff auf zusammenh\"angende XHTML formatierte Daten, ausgehend von einer festgelegten URL.
 
 
 %------------------------------------------------
@@ -145,11 +142,11 @@ Nach der Definition der Aufgabenstellung, wurden die Schritte zur Probleml\"osun
 Die Einarbeitung in die Basisthemen der Arbeit wurde gemeinsam im Team vorgenommen. Folgende Themen und deren Schwerpunkte wurden recherchiert.
 
 \begin{itemize}
-\item \textbf{JavaScript, Node und npm} - verwendete Programmiersprache, serverseitiges Framework und dazugeh\"orirger Packetverwaltung.
+\item \textbf{JavaScript, Node und npm} - verwendete Programmiersprache, serverseitiges Framework und dazugeh\"orirger Paketverwaltung.
 \item \textbf{Schema.org und RDFa} - verwendetes Vokabular und Annotation der Daten.
 \end{itemize}
 
-Im Anschluss wurde mittels Node ein lokaler Server für Test- und Pr\"asentationszwecke erstellt.
+Im Anschluss wurde mittels Node ein lokaler Server f\"ur Test- und Pr\"asentationszwecke erstellt.
 
 \subsection{Implementation und Tests}
 
@@ -160,13 +157,12 @@ Aufgrund der Ergebnisse der Recherche wurde das Erstellen und Testen des Program
 Mittels dem npm Modul "cheerio" wird auf Daten eines vorliegenden XHTML Dokuments zugegriffen. Im Anschluss werden mittels der RDFa Core Sequenz und dem npm Modul "rdf", RDF Triple erzeugt \cite{cheerioModule}, \cite{rdfModule}. 
 
 \item \textbf{Modul 2: Webcrawler} \\
-Mittels dem npm Modul "simplecrawler" wird, ausgehend von einer vorgegebenen URL und den Benutzereinstellungen, eine Liste von zusammenhängenden URLs erstellt. Dabei wird nach jedem Zugriff auf eine URL Modul 1 aufgerufen. Zu den Benztzereinstellungen z\"ahlt das Black-/Whitelisten, daher die Beschränkung der URL Dom\"anen, sowie die Suchtiefe, L\"ange der Verlinkung ausgehend von der Start URL \cite{simplecrawlerModule}.
+Mittels dem npm Modul "simplecrawler" wird, ausgehend von einer vorgegebenen URL und den Benutzereinstellungen, eine Liste von zusammenh\"angenden URLs erstellt. Dabei wird nach jedem Zugriff auf eine URL Modul 1 aufgerufen. Zu den Benutzereinstellungen z\"ahlt das "Black-/Whitelisten", daher die Beschr\"ankung der URL Dom\"anen, sowie die Suchtiefe, L\"ange der Verlinkung ausgehend von der Start URL \cite{simplecrawlerModule}.
 \end{itemize}
 
 \subsection{Zusammenf\"uhrung und Publikation}
 
 Im Anschluss wurden die einzelnen Module zusammengef\"uhrt und nochmals anhand des "RDFa Test Suite Manifest" getestet, bevor das finale Programm als npm Modul ver\"offentlicht wurde \cite{rdfaTest}.
-
 
 
 %------------------------------------------------
@@ -177,7 +173,11 @@ INSERT: Wie schaut unser Ergebnis aus? Wie nennen wir unser npm Modul?
 
 \subsection{Beispielanwendung}
 
-INSET: README.md
+\begin{lstlisting}
+INSERT README.md
+\end{lstlisting}
+
+
 
 %----------------------------------------------------------------------------------------
 %	BIBLIOGRAPHY
