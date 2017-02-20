@@ -1,0 +1,23 @@
+\begin{thebibliography}{1}
+
+\bibitem{berners2001semantic}
+Tim Berners-Lee, James Hendler, Ora Lassila, et~al.
+\newblock The semantic web.
+\newblock {\em Scientific american}, 284(5):28--37, 2001.
+
+\bibitem{halb2008building}
+Wolfgang Halb, Yves Raimond, and Michael Hausenblas.
+\newblock Building linked data for both humans and machines.
+\newblock In {\em LDOW}, 2008.
+
+\bibitem{adida2008rdfa}
+Ben Adida, Mark Birbeck, Shane McCarron, and Steven Pemberton.
+\newblock Rdfa in xhtml: Syntax and processing.
+\newblock {\em Recommendation, W3C}, 7, 2008.
+
+\bibitem{pinkerton2000webcrawler}
+Brian Pinkerton.
+\newblock {\em Webcrawler: Finding what people want}.
+\newblock Citeseer, 2000.
+
+\end{thebibliography}
