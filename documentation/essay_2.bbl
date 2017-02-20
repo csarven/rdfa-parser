@@ -1,9 +1,14 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{10}
 
 \bibitem{berners2001semantic}
 Tim Berners-Lee, James Hendler, Ora Lassila, et~al.
 \newblock The semantic web.
 \newblock {\em Scientific american}, 284(5):28--37, 2001.
+
+\bibitem{guha2016schema}
+Ramanathan~V Guha, Dan Brickley, and Steve Macbeth.
+\newblock Schema. org: Evolution of structured data on the web.
+\newblock {\em Communications of the ACM}, 59(2):44--51, 2016.
 
 \bibitem{halb2008building}
 Wolfgang Halb, Yves Raimond, and Michael Hausenblas.
@@ -15,9 +20,34 @@ Ben Adida, Mark Birbeck, Shane McCarron, and Steven Pemberton.
 \newblock Rdfa in xhtml: Syntax and processing.
 \newblock {\em Recommendation, W3C}, 7, 2008.
 
+\bibitem{rdfaSequence}
+Rdfa core sequence.
+\newblock \url{https://www.w3.org/TR/rdfa-syntax/#s_sequence}.
+\newblock Accessed: 2017-02-20.
+
 \bibitem{pinkerton2000webcrawler}
 Brian Pinkerton.
 \newblock {\em Webcrawler: Finding what people want}.
 \newblock Citeseer, 2000.
+
+\bibitem{cheerioModule}
+Html document object manager node module.
+\newblock \url{https://www.npmjs.com/package/cheerio}.
+\newblock Accessed: 2017-02-20.
+
+\bibitem{rdfModule}
+Rdf interface api node module.
+\newblock \url{https://www.npmjs.com/package/rdf}.
+\newblock Accessed: 2017-02-20.
+
+\bibitem{simplecrawlerModule}
+Webcrawler node module.
+\newblock \url{https://www.npmjs.com/package/simplecrawler}.
+\newblock Accessed: 2017-02-20.
+
+\bibitem{rdfaTest}
+Rdfa test suite.
+\newblock \url{http://rdfa.info/test-suite/}.
+\newblock Accessed: 2017-02-20.
 
 \end{thebibliography}
