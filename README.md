@@ -1,27 +1,66 @@
 # RDFa-parser
 
-link zur Präsentation für den Statusreport am 14.12.2016:
-https://docs.google.com/presentation/d/1CJmV5xhEf7Nbu7XPuQb4Kb2ZhCCbTpilCIdOeqPygdQ/edit?usp=sharing
+JavaScript based program to crawl WWW and parse RDFa annotated information. HTML Contents of acessable URLs are downloaded, and than RDFa information is extracted by applying RDF Core Sequence. Output is a list of RDFa Triples. Following methods are provided:
 
 RDF-Core-Sequence: https://www.w3.org/TR/rdfa-syntax/#s_sequence
 
 RDF-Interface: https://www.w3.org/TR/rdf-interfaces/#idl-def-RDFNode
 
+### parseRDFa(html, base)
+
+Parameter | Datatype | Description
+--- | --- | ---
+html | String | HTML content
+base | String | URL which provides the HTML document
+
+### crawler(start, depth, callback, whitelist, blacklist)
+
+Parameter | Datatype | Description
+--- | --- | ---
+start | String | URL which provides the initial HTML document
+depth | int | Depth of crawler (URL linkage)
+callback | function | Function implementing HTML parsing and RDFa Triple usage
+whitelist | String Array | Optional list, containing URLs (Subdomains) allowed to be accessed
+blacklist | String Array | Optional list, containing URLs (Subdomains) not allowed to be accessed
+
+### Use 
+
+Parse single HTML document
+```javascript
+var rdfaParser = require("rdfa-parser");
+var request = require("request");
+let base = "http://booking.com";
+
+request(base, function (error, response, html) {
+    let triples = rdfaParser.parseRDFa(html, base);
+    for (let i = 0; i < triples.length; i++) {
+        console.log(triples[i].toString());
+    }
+});
+```
+
+Parse single HTML document
+```javascript
+var rdfaParser = require("rdfa-parser");
+var request = require("request");
+let start = "http://booking.com";
+let depth = 2;
+ 
+rdfaParser.crawler(start, depth, function (base) {
+    request(base, function (error, response, html) {
+        let triples = rdfaParser.parseRDFa(html, base);
+        for (let i = 0; i < triples.length; i++) {
+            console.log(triples[i].toString());
+        }
+    });
+});
+```
+
 # TO-DO
 
-Parser - soweit fertig (evtl. bug fixes)
+Bugfixes ?
 
-Crawler - soweit fertig (evtl. console.log() )
-
-Frontend - Append triples from >1 Website
-
-Fertiges Packet - welche Funktionen enthalten (zB Frontend nicht?) und wie erstellen
-
-Readme - fertig stellen
-
-Präsentation fertigstellen (selber Link wie für Statusreport) 
-
-Dokumentation erstellen (4-6 Seiten, Inhalt siehe Kursunterlagen)
+Extend Funtionality ?
 
 # Known Issues:
 
