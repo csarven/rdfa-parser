@@ -26,7 +26,78 @@
 \usepackage{wrapfig} % Allows in-line images
 
 \usepackage{hyperref} % use links for ToC, etc.
-\usepackage{listings} % use code snippet formatting
+
+
+%Define the listing package for JavaScript
+\usepackage{listings} %code highlighter
+\usepackage{color} %use color
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+ 
+%Customize listing look (code snippets)
+\lstset{ %
+backgroundcolor=\color{white}, % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}
+basicstyle=\footnotesize, % the size of the fonts that are used for the code
+breakatwhitespace=false, % sets if automatic breaks should only happen at whitespace
+breaklines=true, % sets automatic line breaking
+captionpos=b, % sets the caption-position to bottom
+commentstyle=\color{mygreen}, % comment style
+deletekeywords={...}, % if you want to delete keywords from the given language
+escapeinside={\%*}{*)}, % if you want to add LaTeX within your code
+extendedchars=true, % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8
+frame=single, % adds a frame around the code
+keepspaces=true, % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)
+keywordstyle=\color{blue}, % keyword style
+% language=Octave, % the language of the code
+morekeywords={*,...}, % if you want to add more keywords to the set
+numbers=left, % where to put the line-numbers; possible values are (none, left, right)
+numbersep=5pt, % how far the line-numbers are from the code
+numberstyle=\tiny\color{mygray}, % the style that is used for the line-numbers
+rulecolor=\color{black}, % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
+showspaces=false, % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'
+showstringspaces=false, % underline spaces within strings only
+showtabs=false, % show tabs within strings adding particular underscores
+stepnumber=1, % the step between two line-numbers. If it's 1, each line will be numbered
+stringstyle=\color{mymauve}, % string literal style
+tabsize=2, % sets default tabsize to 2 spaces
+title=\lstname % show the filename of files included with \lstinputlisting; also try caption instead of title
+}
+%END of listing package%
+ 
+\definecolor{darkgray}{rgb}{.4,.4,.4}
+\definecolor{purple}{rgb}{0.65, 0.12, 0.82}
+ 
+%define Javascript language
+\lstdefinelanguage{JavaScript}{
+keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break, let, for},
+keywordstyle=\color{blue}\bfseries,
+ndkeywords={class, export, boolean, throw, implements, import, this},
+ndkeywordstyle=\color{darkgray}\bfseries,
+identifierstyle=\color{black},
+sensitive=false,
+comment=[l]{//},
+morecomment=[s]{/*}{*/},
+commentstyle=\color{purple}\ttfamily,
+stringstyle=\color{red}\ttfamily,
+morestring=[b]',
+morestring=[b]"
+}
+ 
+\lstset{
+language=JavaScript,
+extendedchars=true,
+basicstyle=\footnotesize\ttfamily,
+showstringspaces=false,
+showspaces=false,
+numbers=left,
+numberstyle=\footnotesize,
+numbersep=9pt,
+tabsize=2,
+breaklines=true,
+showtabs=false,
+captionpos=b
+}
 
 \usepackage{mathpazo} % Use the Palatino font
 \usepackage[T1]{fontenc} % Required for accented characters
@@ -139,14 +210,13 @@ Nach der Definition der Aufgabenstellung, wurden die Schritte zur Probleml\"osun
 
 \subsection{Recherche und Setup}
 
-Die Einarbeitung in die Basisthemen der Arbeit wurde gemeinsam im Team vorgenommen. Folgende Themen und deren Schwerpunkte wurden recherchiert.
+Die Einarbeitung in die Basisthemen der Arbeit wurde gemeinsam im Team vorgenommen. Folgende Themen und deren Schwerpunkte wurden recherchiert. Im Anschluss wurde mittels Node ein lokaler Server f\"ur Test- und Pr\"asentationszwecke erstellt.
 
 \begin{itemize}
 \item \textbf{JavaScript, Node und npm} - verwendete Programmiersprache, serverseitiges Framework und dazugeh\"orirger Paketverwaltung.
 \item \textbf{Schema.org und RDFa} - verwendetes Vokabular und Annotation der Daten.
 \end{itemize}
 
-Im Anschluss wurde mittels Node ein lokaler Server f\"ur Test- und Pr\"asentationszwecke erstellt.
 
 \subsection{Implementation und Tests}
 
@@ -169,14 +239,64 @@ Im Anschluss wurden die einzelnen Module zusammengef\"uhrt und nochmals anhand d
 
 \section{Ergebnis}
 
-INSERT: Wie schaut unser Ergebnis aus? Wie nennen wir unser npm Modul?
+Die zusammengef\"uhrten Module wurden als einzelnes Paket \"uber npm ver\"offentlicht \cite{rdfaCrawler}. Das Paket bietet zwei Methoden, "parseRDFa" und "crawler" an, um RDFa Inhalte aus dem "World Wide Web" zu extrahieren. \\
+
+\textbf{parseRdfa(html, base)} \\
+- mit R\"uckgabe der RDFa Triples in einer Liste.
+\begin{itemize}
+\item \textit{html (String)} - das HTML Dokument, welches RDFa Informationen beinhaltet.
+\item \textit{base (String)} - die URL, die dem HTML Dokument zugrunde liegt.
+\end{itemize}
+
+\textbf{crawler(start, depth, callback, whitelist, blacklist)} \\
+- ohne R\"uckgabewert.
+\begin{itemize}
+\item \textit{start (String)} - die URL, von der aus die Funktion startet.
+\item \textit{depth (int)} - Tiefe der URL Links, die durchsucht werden sollen.
+\item \textit{callback (Function)} - Funktion, die die gefundenen HTML Dokumente bearbeitet (RDFa Triple extrahieren und weiterverarbeiten).
+\item \textit{whitelist (String Array)} - Optionale Liste mit Subdomains, die durchsucht werden sollen.
+\item \textit{blacklist (String Array)} - Optionale Liste mit Subdomains, die niht durchsucht werden sollen.
+\end{itemize}
 
 \subsection{Beispielanwendung}
 
+Der folgende Code implementiert beispielhaft die Verwendung des erstellten Moduls in Abh\"angigkeit des "Request" npm Moduls \cite{requestModule}. \\
+
+\textit{npm Packet installieren:}
 \begin{lstlisting}
-INSERT README.md
+npm install rdfa-parser
 \end{lstlisting}
 
+\textit{Parsen eines einzelnen HTML Dokuments:}
+\begin{lstlisting}[language=JavaScript]
+var rdfaParser = require("rdfa-parser");
+var request = require("request");
+let base = "http://booking.com";
+
+request(base, function (error, response, html) {
+    let triples = rdfaParser.parseRDFa(html, base);
+    for (let i = 0; i < triples.length; i++) {
+        console.log(triples[i].toString());
+    }
+});
+\end{lstlisting}
+
+\textit{Parsen mehrerer HTML Dokumente:}
+\begin{lstlisting}[language=JavaScript]
+var rdfaParser = require("rdfa-parser");
+var request = require("request");
+let start = "http://booking.com";
+let depth = 2;
+ 
+rdfaParser.crawler(start, depth, function (base) {
+    request(base, function (error, response, html) {
+        let triples = rdfaParser.parseRDFa(html, base);
+        for (let i = 0; i < triples.length; i++) {
+            console.log(triples[i].toString());
+        }
+    });
+});
+\end{lstlisting}
 
 
 %----------------------------------------------------------------------------------------

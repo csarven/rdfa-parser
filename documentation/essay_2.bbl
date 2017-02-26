@@ -50,4 +50,14 @@ Rdfa test suite.
 \newblock \url{http://rdfa.info/test-suite/}.
 \newblock Accessed: 2017-02-20.
 
+\bibitem{rdfaCrawler}
+Rdfa webcrawler node module.
+\newblock \url{https://www.npmjs.com/package/rdfa-parser}.
+\newblock Accessed: 2017-02-20.
+
+\bibitem{requestModule}
+Http request client node module.
+\newblock \url{https://www.npmjs.com/package/request}.
+\newblock Accessed: 2017-02-20.
+
 \end{thebibliography}
