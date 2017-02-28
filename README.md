@@ -1,10 +1,12 @@
 # RDFa-parser
 
-JavaScript based program to crawl WWW and parse RDFa annotated information. HTML Contents of acessable URLs are downloaded, and than RDFa information is extracted by applying RDF Core Sequence. Output is a list of RDFa Triples. Following methods are provided:
+JavaScript (Node) based program to crawl WWW and parse RDFa annotated information. HTML Contents of acessable URLs are downloaded, and than RDFa information is extracted by applying RDF Core Sequence. Output is a list of RDFa Triples. Following methods are provided:
 
 RDF-Core-Sequence: https://www.w3.org/TR/rdfa-syntax/#s_sequence
 
 RDF-Interface: https://www.w3.org/TR/rdf-interfaces/#idl-def-RDFNode
+
+npm module: https://www.npmjs.com/package/rdfa-parser
 
 ### parseRDFa(html, base)
 
@@ -39,7 +41,7 @@ request(base, function (error, response, html) {
 });
 ```
 
-Parse single HTML document
+WWW crawl from start URL, linking depth of 2, no black-/whitelisting
 ```javascript
 var rdfaParser = require("rdfa-parser");
 var request = require("request");
@@ -58,9 +60,9 @@ rdfaParser.crawler(start, depth, function (base) {
 
 # TO-DO
 
-Bugfixes ?
+Bugfixes
 
-Extend Funtionality ?
+Extend Funtionality
 
 # Known Issues:
 
